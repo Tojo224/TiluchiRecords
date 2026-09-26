@@ -1,4 +1,3 @@
-import React from 'react';
 import { Music, Mic, UserCheck, Video, Play, ArrowRight, ShieldCheck, Cpu } from 'lucide-react';
 
 export default function App() {
