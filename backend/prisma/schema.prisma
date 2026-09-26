@@ -1,0 +1,165 @@
+// Prisma schema for TiluchiRecords
+// Data Model aligned with Scrum v3.0, D-02 (Project Container), D-03 (Unified MediaAsset), D-04 (Asset Statuses)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String        @map("password_hash")
+  name         String?
+  role         UserRole      @default(USER)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  projects     Project[]
+  consentLogs  ConsentLog[]
+
+  @@map("users")
+}
+
+model Project {
+  id          String          @id @default(uuid())
+  userId      String          @map("user_id")
+  name        String
+  description String?
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaAssets MediaAsset[]
+  jobs        ProcessingJob[]
+
+  @@index([userId])
+  @@map("projects")
+}
+
+enum MediaAssetOrigin {
+  UPLOADED
+  GENERATED
+}
+
+enum MediaAssetStatus {
+  UPLOADING
+  READY
+  FAILED
+}
+
+enum MediaAssetKind {
+  ORIGINAL_AUDIO
+  INSTRUMENTAL_STEM
+  VOCAL_STEM
+  RECORDED_TAKE
+  FINAL_MIX
+  FACE_SWAP_SOURCE_IMAGE
+  FACE_SWAP_SOURCE_VIDEO
+  FACE_SWAP_RESULT_VIDEO
+  VIDEO_CLIP
+  FINAL_VIDEOCLIP
+}
+
+model MediaAsset {
+  id              String           @id @default(uuid())
+  projectId       String           @map("project_id")
+  name            String
+  origin          MediaAssetOrigin
+  status          MediaAssetStatus @default(UPLOADING)
+  kind            MediaAssetKind
+  mimeType        String           @map("mime_type")
+  sizeBytes       BigInt?          @map("size_bytes")
+  durationSeconds Float?           @map("duration_seconds")
+  storageKey      String           @map("storage_key")
+  metadata        Json?            @default("{}")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([status])
+  @@index([kind])
+  @@map("media_assets")
+}
+
+enum JobType {
+  AUDIO_SEPARATION
+  GENERATE_FINAL_MIX
+  FACE_SWAP
+  ANALYZE_AUDIO
+  GENERATE_STORYBOARD
+  GENERATE_VIDEO_CLIPS
+  COMPOSE_VIDEOCLIP
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  WAITING_USER
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model ProcessingJob {
+  id           String        @id @default(uuid())
+  projectId    String        @map("project_id")
+  type         JobType
+  status       JobStatus     @default(PENDING)
+  progress     Int           @default(0) // Percentage 0 - 100
+  errorMessage String?       @map("error_message")
+  payload      Json?         @default("{}")
+  result       Json?         @default("{}")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stages       JobStage[]
+
+  @@index([projectId])
+  @@index([status])
+  @@map("processing_jobs")
+}
+
+model JobStage {
+  id          String        @id @default(uuid())
+  jobId       String        @map("job_id")
+  name        String
+  status      JobStatus     @default(PENDING)
+  progress    Int           @default(0)
+  startedAt   DateTime?     @map("started_at")
+  completedAt DateTime?     @map("completed_at")
+
+  job         ProcessingJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@map("job_stages")
+}
+
+model ConsentLog {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  projectId     String   @map("project_id")
+  termsAccepted Boolean  @map("terms_accepted")
+  consentText   String   @map("consent_text")
+  ipAddress     String?  @map("ip_address")
+  userAgent     String?  @map("user_agent")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([projectId])
+  @@map("consent_logs")
+}
