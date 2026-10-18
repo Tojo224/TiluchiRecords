@@ -1,5 +1,13 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
-import { MediaAssetKind } from '@prisma/client';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from "class-validator";
+import { MediaAssetKind } from "@prisma/client";
 
 export class RequestUploadUrlDto {
   @IsString()
@@ -20,7 +28,7 @@ export class RequestUploadUrlDto {
   @IsNumber()
   @IsOptional()
   @Min(1)
-  @Max(100 * 1024 * 1024) // 100MB limit for MVP
+  @Max(1024 * 1024 * 1024) // 1GB for full-length source videos
   sizeBytes?: number;
 }
 

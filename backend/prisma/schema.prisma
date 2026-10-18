@@ -16,27 +16,44 @@ enum UserRole {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
-  passwordHash String        @map("password_hash")
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
   name         String?
-  role         UserRole      @default(USER)
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
+  phone        String?
+  role         UserRole @default(USER)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  projects     Project[]
-  consentLogs  ConsentLog[]
+  projects            Project[]
+  consentLogs         ConsentLog[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
 }
 
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
 model Project {
-  id          String          @id @default(uuid())
-  userId      String          @map("user_id")
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
   name        String
   description String?
-  createdAt   DateTime        @default(now()) @map("created_at")
-  updatedAt   DateTime        @updatedAt @map("updated_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   mediaAssets MediaAsset[]
@@ -58,7 +75,9 @@ enum MediaAssetStatus {
 }
 
 enum MediaAssetKind {
+  PROJECT_COVER_IMAGE
   ORIGINAL_AUDIO
+  ORIGINAL_VIDEO
   INSTRUMENTAL_STEM
   VOCAL_STEM
   RECORDED_TAKE
@@ -68,6 +87,7 @@ enum MediaAssetKind {
   FACE_SWAP_RESULT_VIDEO
   VIDEO_CLIP
   FINAL_VIDEOCLIP
+  KARAOKE_VIDEO
 }
 
 model MediaAsset {
@@ -85,7 +105,7 @@ model MediaAsset {
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
 
-  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@index([status])
@@ -96,6 +116,8 @@ model MediaAsset {
 enum JobType {
   AUDIO_SEPARATION
   GENERATE_FINAL_MIX
+  GENERATE_KARAOKE
+  ANALYZE_VIDEO_FACES
   FACE_SWAP
   ANALYZE_AUDIO
   GENERATE_STORYBOARD
@@ -113,19 +135,19 @@ enum JobStatus {
 }
 
 model ProcessingJob {
-  id           String        @id @default(uuid())
-  projectId    String        @map("project_id")
+  id           String    @id @default(uuid())
+  projectId    String    @map("project_id")
   type         JobType
-  status       JobStatus     @default(PENDING)
-  progress     Int           @default(0) // Percentage 0 - 100
-  errorMessage String?       @map("error_message")
-  payload      Json?         @default("{}")
-  result       Json?         @default("{}")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
+  status       JobStatus @default(PENDING)
+  progress     Int       @default(0) // Percentage 0 - 100
+  errorMessage String?   @map("error_message")
+  payload      Json?     @default("{}")
+  result       Json?     @default("{}")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  stages       JobStage[]
+  project Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stages  JobStage[]
 
   @@index([projectId])
   @@index([status])
@@ -133,15 +155,15 @@ model ProcessingJob {
 }
 
 model JobStage {
-  id          String        @id @default(uuid())
-  jobId       String        @map("job_id")
+  id          String    @id @default(uuid())
+  jobId       String    @map("job_id")
   name        String
-  status      JobStatus     @default(PENDING)
-  progress    Int           @default(0)
-  startedAt   DateTime?     @map("started_at")
-  completedAt DateTime?     @map("completed_at")
+  status      JobStatus @default(PENDING)
+  progress    Int       @default(0)
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
 
-  job         ProcessingJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job ProcessingJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([jobId])
   @@map("job_stages")
@@ -157,7 +179,7 @@ model ConsentLog {
   userAgent     String?  @map("user_agent")
   createdAt     DateTime @default(now()) @map("created_at")
 
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([projectId])

@@ -14,21 +14,14 @@ __pycache__/
 env/
 venv/
 .venv/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
 
 # Prisma
 backend/prisma/*.db
@@ -45,14 +38,24 @@ backend/prisma/*.db-journal
 /backend/dist/
 /web/dist/
 /web/build/
+/coverage/
+/backend/coverage/
+/web/coverage/
+/web/test-results/
+/web/playwright-report/
 
 # Media / Local storage
 /media-storage/
 /data/
+/.models/
+
+# Local project documentation
+/docs/
 
 # IDE / OS
 .idea/
 .vscode/
+.engram/
 *.swp
 *.swo
 .DS_Store

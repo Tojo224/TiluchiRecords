@@ -23,7 +23,14 @@ class MockAudioSeparationProvider(AudioSeparationProvider):
         }
 
 class MockFaceSwapProvider(FaceSwapProvider):
-    def swap(self, source_image_path: str, target_video_path: str, output_path: str) -> str:
+    def swap(
+        self,
+        source_image_path: str,
+        target_video_path: str,
+        output_path: str,
+        reference_frame_number: int = 0,
+        reference_face_position: int = 0,
+    ) -> str:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         shutil.copyfile(target_video_path, output_path)
         return output_path

@@ -9,7 +9,14 @@ class AudioSeparationProvider(ABC):
 
 class FaceSwapProvider(ABC):
     @abstractmethod
-    def swap(self, source_image_path: str, target_video_path: str, output_path: str) -> str:
+    def swap(
+        self,
+        source_image_path: str,
+        target_video_path: str,
+        output_path: str,
+        reference_frame_number: int = 0,
+        reference_face_position: int = 0,
+    ) -> str:
         """Applies face swap onto target video and returns the processed video path."""
         pass
 
