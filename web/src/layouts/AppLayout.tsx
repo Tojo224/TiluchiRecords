@@ -2,6 +2,7 @@ import {
   Files,
   FolderOpen,
   Gauge,
+  Home,
   Menu,
   Mic2,
   Music2,
@@ -23,7 +24,7 @@ const routeMeta: Array<{ match: RegExp; title: string; icon: LucideIcon }> = [
   { match: /\/projects\/[^/]+$/, title: "Resumen", icon: Gauge },
   { match: /\/projects$/, title: "Proyectos", icon: FolderOpen },
   { match: /\/profile$/, title: "Mi perfil", icon: User },
-  { match: /\/dashboard$/, title: "Inicio", icon: Gauge },
+  { match: /\/dashboard$/, title: "Inicio", icon: Home },
 ];
 
 export function AppLayout() {

@@ -21,6 +21,14 @@ const RESULT_GROUPS: Array<{
     icon: Mic2,
   },
   {
+    kind: "KARAOKE_PERFORMANCE_VIDEO",
+    title: "Interpretaciones karaoke",
+    itemTitle: "Interpretacion grabada",
+    description: "Videos cantados y grabados durante una sesion de karaoke.",
+    emptyText: "Todavia no guardaste una interpretacion karaoke.",
+    icon: Mic2,
+  },
+  {
     kind: "FACE_SWAP_RESULT_VIDEO",
     title: "Resultados de face swap",
     itemTitle: "Video con face swap",

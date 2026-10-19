@@ -19,7 +19,8 @@ export type MediaAssetKind =
   | "FACE_SWAP_RESULT_VIDEO"
   | "VIDEO_CLIP"
   | "FINAL_VIDEOCLIP"
-  | "KARAOKE_VIDEO";
+  | "KARAOKE_VIDEO"
+  | "KARAOKE_PERFORMANCE_VIDEO";
 
 export type MediaAsset = {
   id: string;

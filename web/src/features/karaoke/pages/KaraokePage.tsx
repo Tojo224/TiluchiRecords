@@ -15,12 +15,14 @@ import { formatBytes } from "../../../shared/lib/format";
 import { VIDEO_FILE_ACCEPT } from "../../../shared/media/asset-files";
 import type { MediaAsset } from "../../../shared/types/domain";
 import { useProject } from "../../projects/context/ProjectContext";
+import { KaraokeSingingModal } from "../components/KaraokeSingingModal";
 
 export function KaraokePage() {
   const { project, assetUrls, uploadFile, createJob, downloadAsset } =
     useProject();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [singingOpen, setSingingOpen] = useState(false);
   const videos = useMemo(
     () =>
       (project.mediaAssets || []).filter(
@@ -49,6 +51,16 @@ export function KaraokePage() {
   const processing = ["PENDING", "PROCESSING"].includes(
     karaokeJob?.status || "",
   );
+  const latestPerformance = (project.mediaAssets || [])
+    .filter(
+      (asset) =>
+        asset.kind === "KARAOKE_PERFORMANCE_VIDEO" && asset.status === "READY",
+    )
+    .sort(
+      (left, right) =>
+        new Date(right.createdAt).getTime() -
+        new Date(left.createdAt).getTime(),
+    )[0];
 
   async function upload(file: File) {
     try {
@@ -71,6 +83,22 @@ export function KaraokePage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function savePerformance(
+    recording: Blob,
+    name: string,
+    durationSeconds: number,
+  ) {
+    const extension = recording.type.includes("mp4") ? "mp4" : "webm";
+    const fileName = `${sanitizeFileName(name)}.${extension}`;
+    await uploadFile(
+      recording,
+      fileName,
+      "KARAOKE_PERFORMANCE_VIDEO",
+      durationSeconds,
+    );
+    setMessage(`Interpretacion "${name}" guardada correctamente.`);
   }
 
   const stage = karaokeStage(karaokeJob?.result?.stage);
@@ -180,10 +208,48 @@ export function KaraokePage() {
           asset={karaokeVideo}
           url={karaokeVideo && assetUrls[karaokeVideo.id]}
           onDownload={downloadAsset}
+          action={
+            karaokeVideo && assetUrls[karaokeVideo.id]
+              ? {
+                  label: "Cantar",
+                  onClick: () => setSingingOpen(true),
+                }
+              : undefined
+          }
         />
       </section>
+
+      {latestPerformance && (
+        <section>
+          <MediaPlayer
+            title="Ultima interpretacion"
+            asset={latestPerformance}
+            url={assetUrls[latestPerformance.id]}
+            onDownload={downloadAsset}
+            compact
+          />
+        </section>
+      )}
+
+      {singingOpen && karaokeVideo && assetUrls[karaokeVideo.id] && (
+        <KaraokeSingingModal
+          videoUrl={assetUrls[karaokeVideo.id]}
+          defaultName={`Interpretacion - ${project.name}`}
+          onClose={() => setSingingOpen(false)}
+          onSave={savePerformance}
+        />
+      )}
     </>
   );
+}
+
+function sanitizeFileName(value: string) {
+  const sanitized = value
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "-")
+    .replace(/\s+/g, " ")
+    .replace(/[. ]+$/g, "");
+  return sanitized || "interpretacion-karaoke";
 }
 
 function VideoPicker({

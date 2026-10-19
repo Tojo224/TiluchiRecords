@@ -88,6 +88,7 @@ enum MediaAssetKind {
   VIDEO_CLIP
   FINAL_VIDEOCLIP
   KARAOKE_VIDEO
+  KARAOKE_PERFORMANCE_VIDEO
 }
 
 model MediaAsset {

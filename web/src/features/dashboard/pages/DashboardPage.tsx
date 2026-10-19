@@ -272,25 +272,23 @@ function MetricCard({
 }) {
   return (
     <article
-      className={`relative min-h-28 overflow-hidden rounded-lg border p-4 shadow-sm ${tones[tone].card}`}
+      className={`relative min-h-[88px] overflow-hidden rounded-lg border p-3 shadow-sm ${tones[tone].card}`}
     >
       <div className="relative z-10 flex items-center gap-3">
         <span
-          className={`grid size-12 shrink-0 place-items-center rounded-lg ${tones[tone].icon}`}
+          className={`grid size-10 shrink-0 place-items-center rounded-md ${tones[tone].icon}`}
         >
-          <Icon size={24} />
+          <Icon size={21} />
         </span>
         <div className="min-w-0">
-          <span className="block min-h-9 text-sm leading-tight text-zinc-600 dark:text-zinc-300">
+          <span className="block text-xs leading-tight text-zinc-600 dark:text-zinc-300">
             {label}
           </span>
-          <strong className="mt-1 block text-3xl font-bold tabular-nums">
+          <strong className="mt-1 block text-2xl font-bold leading-none tabular-nums">
             {loading ? "..." : value}
           </strong>
         </div>
       </div>
-      <span className="absolute -bottom-7 -right-4 size-24 rounded-full border border-current opacity-10" />
-      <span className="absolute -bottom-9 right-5 size-20 rounded-full border border-current opacity-10" />
     </article>
   );
 }

@@ -2,7 +2,7 @@ import {
   ChevronUp,
   Film,
   FolderOpen,
-  Gauge,
+  Home,
   Images,
   LogOut,
   Mic2,
@@ -65,16 +65,21 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         to="/dashboard"
         onClick={onNavigate}
         className="mb-8 flex items-center gap-3 px-1"
+        aria-label="TiluchiRecords - Estudio creativo audiovisual"
       >
-        <span className="grid size-12 place-items-center rounded-md bg-red-600 text-xl font-black text-white shadow-lg shadow-red-600/20">
-          T
+        <span className="relative size-14 shrink-0 overflow-hidden rounded-md bg-[#021116] shadow-lg shadow-emerald-500/15">
+          <img
+            src="/assets/Logo_TiluchiRecords.png"
+            alt=""
+            className="pointer-events-none size-full select-none object-contain"
+          />
         </span>
         <span className="min-w-0">
           <strong className="block truncate text-base font-bold">
             TiluchiRecords
           </strong>
           <small className="text-xs text-zinc-500 dark:text-zinc-400">
-            Estudio creativo
+            Estudio creativo audiovisual
           </small>
         </span>
       </NavLink>
@@ -83,7 +88,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         <NavItem
           to="/dashboard"
           label="Inicio"
-          icon={Gauge}
+          icon={Home}
           onNavigate={onNavigate}
         />
         <NavLink

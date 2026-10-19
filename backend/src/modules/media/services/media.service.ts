@@ -53,7 +53,10 @@ export class MediaService {
       data: {
         projectId: dto.projectId,
         name: dto.fileName,
-        origin: MediaAssetOrigin.UPLOADED,
+        origin:
+          dto.kind === MediaAssetKind.KARAOKE_PERFORMANCE_VIDEO
+            ? MediaAssetOrigin.GENERATED
+            : MediaAssetOrigin.UPLOADED,
         status: MediaAssetStatus.UPLOADING,
         kind: dto.kind,
         mimeType: dto.mimeType,
@@ -234,6 +237,8 @@ export class MediaService {
         normalizedMime.startsWith("video/")) ||
       (kind === MediaAssetKind.RECORDED_TAKE &&
         normalizedMime.startsWith("audio/")) ||
+      (kind === MediaAssetKind.KARAOKE_PERFORMANCE_VIDEO &&
+        normalizedMime.startsWith("video/")) ||
       (kind === MediaAssetKind.FACE_SWAP_SOURCE_VIDEO &&
         normalizedMime.startsWith("video/")) ||
       (kind === MediaAssetKind.FACE_SWAP_SOURCE_IMAGE &&

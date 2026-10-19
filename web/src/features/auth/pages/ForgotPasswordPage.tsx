@@ -1,14 +1,17 @@
+import { ArrowLeft, ArrowRight, Loader2, Mail } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../../../components/ui/Button";
 import { Notice } from "../../../components/ui/Notice";
 import { apiRequest } from "../../../shared/api/client";
+import { AuthField } from "../components/AuthField";
 import { AuthShell } from "../components/AuthShell";
 
 export function ForgotPasswordPage() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -22,33 +25,49 @@ export function ForgotPasswordPage() {
         method: "POST",
         body: JSON.stringify({ email: String(form.get("email")) }),
       });
-      if (result.devResetToken)
-        navigate("/reset-password", { state: { token: result.devResetToken } });
-      else setMessage(result.message);
+      if (result.devResetToken) {
+        navigate("/reset-password", {
+          state: { token: result.devResetToken },
+        });
+      } else {
+        setMessage(result.message);
+      }
     } catch (error) {
       setMessage((error as Error).message);
     } finally {
       setBusy(false);
     }
   }
+
   return (
     <AuthShell
       title="Recuperar contrasena"
-      description="Solicita un token para definir una nueva contrasena."
+      description="Ingresa tu correo para restablecer el acceso a tu cuenta."
     >
-      <form className="grid gap-4" onSubmit={submit}>
+      <form className="grid gap-5" onSubmit={submit}>
         <Notice message={message} />
-        <label>
-          Correo
-          <input name="email" type="email" required />
-        </label>
-        <Button type="submit" disabled={busy}>
-          Generar token
+        <AuthField
+          label="Correo"
+          icon={Mail}
+          name="email"
+          type="email"
+          placeholder="nombre@correo.com"
+          required
+          autoComplete="email"
+        />
+        <Button className="h-12 w-full" type="submit" disabled={busy}>
+          {busy ? (
+            <Loader2 className="animate-spin" size={18} />
+          ) : (
+            <ArrowRight size={18} />
+          )}
+          {busy ? "Enviando..." : "Continuar"}
         </Button>
         <Link
-          className="text-center text-sm text-emerald-700 dark:text-emerald-400"
+          className="inline-flex items-center justify-center gap-2 border-t border-zinc-200 pt-5 text-sm font-semibold text-emerald-700 hover:underline dark:border-white/10 dark:text-emerald-400"
           to="/login"
         >
+          <ArrowLeft size={16} />
           Volver al ingreso
         </Link>
       </form>

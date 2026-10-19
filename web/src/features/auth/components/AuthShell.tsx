@@ -11,30 +11,75 @@ export function AuthShell({
   children: ReactNode;
 }) {
   return (
-    <main className="grid min-h-screen place-items-center bg-zinc-100 p-4 dark:bg-zinc-950">
-      <div className="fixed right-4 top-4">
-        <ThemeToggle />
-      </div>
-      <section className="w-full max-w-md border border-zinc-200 bg-white p-7 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mb-6 flex items-center gap-3">
-          <span className="grid size-11 place-items-center rounded-md bg-red-600 text-lg font-black text-white">
-            T
-          </span>
-          <div>
-            <strong className="block text-zinc-950 dark:text-white">
-              TiluchiRecords
-            </strong>
-            <span className="text-xs text-zinc-500">Estudio creativo</span>
+    <main className="min-h-screen bg-zinc-50 text-zinc-950 dark:bg-[#071014] dark:text-white">
+      <div className="grid min-h-screen lg:grid-cols-[minmax(0,1.08fr)_minmax(460px,0.92fr)]">
+        <section
+          className="relative hidden min-h-screen overflow-hidden border-r border-zinc-200 dark:border-white/10 lg:block"
+          aria-hidden="true"
+        >
+          <div
+            className="absolute inset-0 bg-cover bg-center dark:hidden"
+            style={{
+              backgroundImage: "url('/assets/auth-studio-dark.jpg')",
+              filter: "brightness(1.45) contrast(0.78) saturate(0.62)",
+            }}
+          />
+          <div
+            className="absolute inset-0 hidden bg-cover bg-center dark:block"
+            style={{
+              backgroundImage: "url('/assets/auth-studio-dark.jpg')",
+            }}
+          />
+          <div className="absolute inset-0 bg-white/15 dark:hidden" />
+          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/10 to-transparent dark:from-[#061014] dark:via-[#061014]/10" />
+          <div className="absolute inset-x-0 bottom-0 p-10 xl:p-14">
+            <div className="max-w-xl border-l-2 border-emerald-500 pl-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-300">
+                Estudio creativo audiovisual
+              </p>
+              <p className="mt-3 text-3xl font-semibold leading-tight text-zinc-950 dark:text-white xl:text-4xl">
+                Tu musica, tus historias y tu vision en un solo espacio.
+              </p>
+            </div>
           </div>
-        </div>
-        <h1 className="text-2xl font-semibold text-zinc-950 dark:text-white">
-          {title}
-        </h1>
-        <p className="mb-6 mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          {description}
-        </p>
-        {children}
-      </section>
+        </section>
+
+        <section className="relative flex min-h-screen items-center justify-center px-5 py-20 sm:px-10 lg:px-12 xl:px-20">
+          <div className="absolute right-5 top-5 sm:right-8 sm:top-7">
+            <ThemeToggle />
+          </div>
+          <div className="w-full max-w-md">
+            <div className="mb-10 flex items-center gap-4">
+              <span className="size-16 shrink-0 overflow-hidden rounded-md bg-[#021116] shadow-lg shadow-emerald-500/15">
+                <img
+                  src="/assets/Logo_TiluchiRecords.png"
+                  alt=""
+                  className="size-full object-contain"
+                />
+              </span>
+              <span className="min-w-0">
+                <strong className="block text-xl font-bold">
+                  TiluchiRecords
+                </strong>
+                <small className="mt-0.5 block text-sm text-zinc-500 dark:text-zinc-400">
+                  Estudio creativo audiovisual
+                </small>
+              </span>
+            </div>
+
+            <div className="mb-7">
+              <h1 className="text-3xl font-semibold tracking-normal sm:text-4xl">
+                {title}
+              </h1>
+              <p className="mt-2 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+                {description}
+              </p>
+            </div>
+
+            {children}
+          </div>
+        </section>
+      </div>
     </main>
   );
 }

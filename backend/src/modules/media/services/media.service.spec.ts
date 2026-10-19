@@ -50,6 +50,11 @@ describe("MediaService upload type validation", () => {
     [MediaAssetKind.FACE_SWAP_SOURCE_IMAGE, "image/png", "face.png"],
     [MediaAssetKind.PROJECT_COVER_IMAGE, "image/webp", "cover.webp"],
     [MediaAssetKind.RECORDED_TAKE, "audio/webm", "take.webm"],
+    [
+      MediaAssetKind.KARAOKE_PERFORMANCE_VIDEO,
+      "video/webm",
+      "mi-interpretacion.webm",
+    ],
   ])("accepts %s with %s", async (kind, mimeType, fileName) => {
     const { service, prisma } = createService();
 
@@ -68,6 +73,25 @@ describe("MediaService upload type validation", () => {
     });
   });
 
+  it("stores a karaoke performance as a generated result", async () => {
+    const { service, prisma } = createService();
+
+    await service.requestUploadUrl("user-1", {
+      projectId: "project-1",
+      fileName: "mi-interpretacion.webm",
+      mimeType: "video/webm",
+      kind: MediaAssetKind.KARAOKE_PERFORMANCE_VIDEO,
+      sizeBytes: 128,
+    });
+
+    expect(prisma.mediaAsset.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        kind: MediaAssetKind.KARAOKE_PERFORMANCE_VIDEO,
+        origin: "GENERATED",
+      }),
+    });
+  });
+
   it.each([
     [MediaAssetKind.ORIGINAL_AUDIO, "image/png"],
     [MediaAssetKind.ORIGINAL_VIDEO, "audio/mpeg"],
@@ -75,6 +99,7 @@ describe("MediaService upload type validation", () => {
     [MediaAssetKind.FACE_SWAP_SOURCE_IMAGE, "video/mp4"],
     [MediaAssetKind.PROJECT_COVER_IMAGE, "image/gif"],
     [MediaAssetKind.VIDEO_CLIP, "video/mp4"],
+    [MediaAssetKind.KARAOKE_PERFORMANCE_VIDEO, "audio/webm"],
   ])("rejects MIME %s for incompatible kind %s", async (kind, mimeType) => {
     const { service } = createService();
 

@@ -23,6 +23,7 @@ const KIND_LABELS: Record<MediaAssetKind, string> = {
   VIDEO_CLIP: "Clip generado",
   FINAL_VIDEOCLIP: "Videoclip final",
   KARAOKE_VIDEO: "Video karaoke",
+  KARAOKE_PERFORMANCE_VIDEO: "Interpretacion karaoke",
 };
 
 function assetIcon(asset: MediaAsset) {
