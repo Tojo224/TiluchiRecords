@@ -11,11 +11,18 @@ import { AssetSelect } from "../../media/components/AssetSelect";
 import { useSelectedAsset } from "../../media/hooks/useSelectedAsset";
 import { MUSIC_FILE_ACCEPT } from "../../../shared/media/asset-files";
 import { MediaPlayer } from "../../media/components/MediaPlayer";
+import { useActiveJobPolling } from "../../jobs/hooks/useActiveJobPolling";
 import { useProject } from "../../projects/context/ProjectContext";
 
 export function MusicVideoPage() {
-  const { project, assetUrls, uploadFile, createJob, downloadAsset, refresh } =
-    useProject();
+  const {
+    project,
+    assetUrls,
+    uploadFile,
+    createJob,
+    downloadAsset,
+    retainFastPolling,
+  } = useProject();
   const [prompt, setPrompt] = useState(
     "realismo cinematografico con un protagonista y un mundo visual coherentes",
   );
@@ -115,26 +122,10 @@ export function MusicVideoPage() {
   const composeFailed = state.composeJob?.status === "FAILED";
   const autoStarted = useRef(new Set<string>());
 
-  useEffect(() => {
-    if (
-      !analysisRunning &&
-      !storyboardRunning &&
-      !clipRunning &&
-      !composeRunning
-    )
-      return;
-    const interval = window.setInterval(
-      () => refresh().catch(() => undefined),
-      1000,
-    );
-    return () => window.clearInterval(interval);
-  }, [
-    analysisRunning,
-    clipRunning,
-    composeRunning,
-    refresh,
-    storyboardRunning,
-  ]);
+  useActiveJobPolling(
+    retainFastPolling,
+    analysisRunning || storyboardRunning || clipRunning || composeRunning,
+  );
 
   useEffect(() => {
     const analysis = state.analysis;

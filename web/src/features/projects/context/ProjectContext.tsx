@@ -15,12 +15,15 @@ import type {
   MediaAssetKind,
   Project,
 } from "../../../shared/types/domain";
+import { useJobPolling } from "../../jobs/hooks/useJobPolling";
 import { resolveMediaMimeType } from "../../../shared/media/asset-files";
 
 type ProjectContextValue = {
   project: Project;
   assetUrls: Record<string, string>;
   refresh: () => Promise<void>;
+  /** Requests fast polling; returns a function that releases the request. */
+  retainFastPolling: () => () => void;
   createJob: (type: JobType, payload: Record<string, unknown>) => Promise<Job>;
   uploadFile: (
     file: File | Blob,
@@ -66,13 +69,17 @@ export function ProjectProviderLayout() {
   useEffect(() => {
     refresh().catch(() => setLoading(false));
   }, [refresh]);
-  useEffect(() => {
-    const interval = window.setInterval(
-      () => refresh().catch(() => undefined),
-      3000,
-    );
-    return () => window.clearInterval(interval);
-  }, [refresh]);
+  const [fastPollingRequests, setFastPollingRequests] = useState(0);
+  const retainFastPolling = useCallback(() => {
+    let released = false;
+    setFastPollingRequests((count) => count + 1);
+    return () => {
+      if (released) return;
+      released = true;
+      setFastPollingRequests((count) => count - 1);
+    };
+  }, []);
+  useJobPolling({ refresh, active: fastPollingRequests > 0 });
 
   useEffect(() => {
     (project?.mediaAssets || [])
@@ -175,6 +182,7 @@ export function ProjectProviderLayout() {
             project,
             assetUrls,
             refresh,
+            retainFastPolling,
             createJob,
             uploadFile,
             downloadAsset,
@@ -185,6 +193,7 @@ export function ProjectProviderLayout() {
       assetUrls,
       project,
       refresh,
+      retainFastPolling,
       createJob,
       uploadFile,
       downloadAsset,

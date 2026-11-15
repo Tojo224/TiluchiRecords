@@ -26,6 +26,7 @@ import { AssetSelect } from "../../media/components/AssetSelect";
 import { FileUpload } from "../../media/components/FileUpload";
 import { MediaPlayer } from "../../media/components/MediaPlayer";
 import { useSelectedAsset } from "../../media/hooks/useSelectedAsset";
+import { useActiveJobPolling } from "../../jobs/hooks/useActiveJobPolling";
 import { useProject } from "../../projects/context/ProjectContext";
 import { formatBytes, formatDuration } from "../../../shared/lib/format";
 
@@ -42,8 +43,14 @@ type FaceIdentity = {
 
 export function FaceSwapPage() {
   const { api } = useAuth();
-  const { project, assetUrls, uploadFile, createJob, downloadAsset, refresh } =
-    useProject();
+  const {
+    project,
+    assetUrls,
+    uploadFile,
+    createJob,
+    downloadAsset,
+    retainFastPolling,
+  } = useProject();
   const [consent, setConsent] = useState(false);
   const [selectedIdentityIds, setSelectedIdentityIds] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -151,14 +158,7 @@ export function FaceSwapPage() {
       });
   }, [analysisJob, createJob, videoId]);
 
-  useEffect(() => {
-    if (!analysisRunning && !swapRunning) return;
-    const interval = window.setInterval(
-      () => refresh().catch(() => undefined),
-      1000,
-    );
-    return () => window.clearInterval(interval);
-  }, [analysisRunning, refresh, swapRunning]);
+  useActiveJobPolling(retainFastPolling, analysisRunning || swapRunning);
 
   async function retryAnalysis() {
     if (!videoId) return;
