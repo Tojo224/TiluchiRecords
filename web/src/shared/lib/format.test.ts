@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDuration } from "./format";
+import { formatDuration } from "@/shared/lib/format";
 
 describe("formatDuration", () => {
   it("formats seconds as m:ss", () => {
