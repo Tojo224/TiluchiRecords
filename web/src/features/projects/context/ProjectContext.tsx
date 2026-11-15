@@ -34,6 +34,15 @@ type ProjectContextValue = {
 
 const ProjectContext = createContext<ProjectContextValue | null>(null);
 
+function isNotFoundError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    (error as { status?: unknown }).status === 404
+  );
+}
+
 export function ProjectProviderLayout() {
   const { projectId } = useParams();
   const { api } = useAuth();
@@ -46,8 +55,8 @@ export function ProjectProviderLayout() {
     if (!projectId) return;
     try {
       setProject(await api<Project>(`/projects/${projectId}`));
-    } catch (error: any) {
-      if (error?.status === 404) setNotFound(true);
+    } catch (error: unknown) {
+      if (isNotFoundError(error)) setNotFound(true);
       else throw error;
     } finally {
       setLoading(false);
@@ -80,72 +89,84 @@ export function ProjectProviderLayout() {
       });
   }, [api, assetUrls, project?.mediaAssets]);
 
-  async function createJob(type: JobType, payload: Record<string, unknown>) {
-    const job = await api<Job>("/jobs", {
-      method: "POST",
-      body: JSON.stringify({ projectId, type, payload }),
-    });
-    await refresh();
-    return job;
-  }
-
-  async function uploadFile(
-    file: File | Blob,
-    fileName: string,
-    kind: MediaAssetKind,
-    durationSeconds?: number,
-  ) {
-    const mimeType = resolveMediaMimeType(fileName, file.type);
-    const upload = await api<{ assetId: string; uploadUrl: string }>(
-      "/media/upload-url",
-      {
+  const createJob = useCallback(
+    async (type: JobType, payload: Record<string, unknown>) => {
+      const job = await api<Job>("/jobs", {
         method: "POST",
-        body: JSON.stringify({
-          projectId,
-          fileName,
-          mimeType,
-          kind,
-          sizeBytes: file.size,
-        }),
-      },
-    );
-    const response = await fetch(upload.uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": mimeType },
-      body: file,
-    });
-    if (!response.ok) throw new Error("No se pudo subir el archivo.");
-    const asset = await api<MediaAsset>(`/media/${upload.assetId}/confirm`, {
-      method: "POST",
-      body: JSON.stringify({ durationSeconds }),
-    });
-    await refresh();
-    return asset;
-  }
+        body: JSON.stringify({ projectId, type, payload }),
+      });
+      await refresh();
+      return job;
+    },
+    [api, projectId, refresh],
+  );
 
-  async function downloadAsset(assetId: string) {
-    const { downloadUrl, name } = await api<{
-      downloadUrl: string;
-      name: string;
-    }>(`/media/${assetId}/download-url`);
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.download = name;
-    link.hidden = true;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  }
+  const uploadFile = useCallback(
+    async (
+      file: File | Blob,
+      fileName: string,
+      kind: MediaAssetKind,
+      durationSeconds?: number,
+    ) => {
+      const mimeType = resolveMediaMimeType(fileName, file.type);
+      const upload = await api<{ assetId: string; uploadUrl: string }>(
+        "/media/upload-url",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            projectId,
+            fileName,
+            mimeType,
+            kind,
+            sizeBytes: file.size,
+          }),
+        },
+      );
+      const response = await fetch(upload.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": mimeType },
+        body: file,
+      });
+      if (!response.ok) throw new Error("No se pudo subir el archivo.");
+      const asset = await api<MediaAsset>(`/media/${upload.assetId}/confirm`, {
+        method: "POST",
+        body: JSON.stringify({ durationSeconds }),
+      });
+      await refresh();
+      return asset;
+    },
+    [api, projectId, refresh],
+  );
 
-  async function deleteAsset(assetId: string) {
-    await api(`/media/${assetId}`, { method: "DELETE" });
-    setAssetUrls((current) => {
-      const next = { ...current };
-      delete next[assetId];
-      return next;
-    });
-    await refresh();
-  }
+  const downloadAsset = useCallback(
+    async (assetId: string) => {
+      const { downloadUrl, name } = await api<{
+        downloadUrl: string;
+        name: string;
+      }>(`/media/${assetId}/download-url`);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = name;
+      link.hidden = true;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    },
+    [api],
+  );
+
+  const deleteAsset = useCallback(
+    async (assetId: string) => {
+      await api(`/media/${assetId}`, { method: "DELETE" });
+      setAssetUrls((current) => {
+        const next = { ...current };
+        delete next[assetId];
+        return next;
+      });
+      await refresh();
+    },
+    [api, refresh],
+  );
 
   const value = useMemo(
     () =>
@@ -160,7 +181,15 @@ export function ProjectProviderLayout() {
             deleteAsset,
           }
         : null,
-    [assetUrls, project, refresh],
+    [
+      assetUrls,
+      project,
+      refresh,
+      createJob,
+      uploadFile,
+      downloadAsset,
+      deleteAsset,
+    ],
   );
   if (notFound) return <Navigate to="/projects" replace />;
   if (loading || !value)
