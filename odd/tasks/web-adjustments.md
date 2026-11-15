@@ -29,7 +29,7 @@ Reduce duplication and fragility in the web client without changing user-visible
 - [x] T3 Tooling: path aliases (tsconfig + vite) and basic ESLint
 - [x] T4 ProjectContext: `useCallback` on exposed functions, `unknown` instead of `any` in catch blocks
 - [x] T5 `useJobPolling`: one polling hook replacing the 3 page/context intervals, with unit tests
-- [ ] T6 `useJobForType`: returns `{ job, running, failed, completed }`, removes repeated flags, with unit tests
+- [x] T6 `useJobForType`: returns `{ job, running, failed, completed }`, removes repeated flags, with unit tests
 - [ ] T7 Split MusicVideoPage then FaceSwapPage into `components/` subcomponents
 
 ## Out of scope
@@ -41,7 +41,7 @@ Reduce duplication and fragility in the web client without changing user-visible
 Each task: delegated direct (one bounded writer, sequential). Trigger: writer trigger (2+ non-trivial files).
 
 ## Progress
-T1-T5 done and verified (build, unit tests, lint; format:check clean for touched files). T6-T7 pending.
+T1-T6 done and verified (build, unit tests, lint; format:check clean for touched files). T7 pending.
 
 ## Evidence (commit per task)
 - T1: e073694 chore(web): add vitest unit testing setup
@@ -49,7 +49,8 @@ T1-T5 done and verified (build, unit tests, lint; format:check clean for touched
 - T3: 8a9f07b chore(web): add path alias and eslint config (lint reports 8 pre-existing warnings, 0 errors)
 - T4: 435480c refactor(web): stabilize ProjectContext callbacks and error typing (lint warnings 8 -> 6)
 - T5: fd670db refactor(web): unify job polling in useJobPolling (single timer in ProjectContext via useJobPolling: 1s while a page retains fast polling, else 3s; pages call useActiveJobPolling)
+- T6: 6ab4f19 refactor(web): add useJobForType and drop repeated job flags (pure selectJobForType/getJobFlags + thin useJobForType; all pages kept first-match-in-list-order semantics; MusicVideoPage uses the pure helpers inside its dependent useMemo chain; lint warnings stay 6; 25 unit tests)
 - Note: format:check fails on ~44 untouched files on Windows because of CRLF checkouts (autocrlf); pre-existing.
 
 ## Next step
-T6.
+T7.
