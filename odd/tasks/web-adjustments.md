@@ -45,7 +45,7 @@ T1-T3 done and verified (build, unit tests, lint; format:check clean for touched
 
 ## Evidence (commit per task)
 - T1: e073694 chore(web): add vitest unit testing setup
-- T2: ba0d156 refactor(web): share formatDuration helper (FaceSwap keeps its "Duracion por detectar" fallback via a local wrapper; shared helper is m:ss, hours not split)
+- T2: ba0d156 refactor(web): share formatDuration helper (shared helper is m:ss; FaceSwap keeps its "Duracion por detectar" fallback and its h:mm:ss format for videos of one hour or more via a local wrapper, restored in a follow-up fix commit after review found a behavior change)
 - T3: 8a9f07b chore(web): add path alias and eslint config (lint reports 8 pre-existing warnings, 0 errors)
 - Note: format:check fails on ~44 untouched files on Windows because of CRLF checkouts (autocrlf); pre-existing.
 
