@@ -24,9 +24,9 @@ Reduce duplication and fragility in the web client without changing user-visible
 - No Vitest, no ESLint, no path aliases.
 
 ## Tasks
-- [ ] T1 Add Vitest + Testing Library setup and a smoke test (`test:unit` script)
-- [ ] T2 Move `formatDuration` to `shared/lib/format.ts`, replace 3 copies, add unit test
-- [ ] T3 Tooling: path aliases (tsconfig + vite) and basic ESLint
+- [x] T1 Add Vitest + Testing Library setup and a smoke test (`test:unit` script)
+- [x] T2 Move `formatDuration` to `shared/lib/format.ts`, replace 3 copies, add unit test
+- [x] T3 Tooling: path aliases (tsconfig + vite) and basic ESLint
 - [ ] T4 ProjectContext: `useCallback` on exposed functions, `unknown` instead of `any` in catch blocks
 - [ ] T5 `useJobPolling`: one polling hook replacing the 3 page/context intervals, with unit tests
 - [ ] T6 `useJobForType`: returns `{ job, running, failed, completed }`, removes repeated flags, with unit tests
@@ -41,10 +41,13 @@ Reduce duplication and fragility in the web client without changing user-visible
 Each task: delegated direct (one bounded writer, sequential). Trigger: writer trigger (2+ non-trivial files).
 
 ## Progress
-Created. No tasks started.
+T1-T3 done and verified (build, unit tests, lint; format:check clean for touched files). T4-T7 pending.
 
 ## Evidence (commit per task)
-(none yet)
+- T1: e073694 chore(web): add vitest unit testing setup
+- T2: ba0d156 refactor(web): share formatDuration helper (FaceSwap keeps its "Duracion por detectar" fallback via a local wrapper; shared helper is m:ss, hours not split)
+- T3: 8a9f07b chore(web): add path alias and eslint config (lint reports 8 pre-existing warnings, 0 errors)
+- Note: format:check fails on ~44 untouched files on Windows because of CRLF checkouts (autocrlf); pre-existing.
 
 ## Next step
-T1.
+T4.
