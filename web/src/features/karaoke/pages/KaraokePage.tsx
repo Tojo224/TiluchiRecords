@@ -11,7 +11,7 @@ import { Notice } from "../../../components/ui/Notice";
 import { FileUpload } from "../../media/components/FileUpload";
 import { MediaPlayer } from "../../media/components/MediaPlayer";
 import { useSelectedAsset } from "../../media/hooks/useSelectedAsset";
-import { formatBytes } from "../../../shared/lib/format";
+import { formatBytes, formatDuration } from "../../../shared/lib/format";
 import { VIDEO_FILE_ACCEPT } from "../../../shared/media/asset-files";
 import type { MediaAsset } from "../../../shared/types/domain";
 import { useProject } from "../../projects/context/ProjectContext";
@@ -320,11 +320,6 @@ function videoFormat(asset: MediaAsset) {
   return [extension || "VIDEO", duration ? formatDuration(duration) : null]
     .filter(Boolean)
     .join(" · ");
-}
-
-function formatDuration(seconds: number) {
-  const total = Math.max(0, Math.round(seconds));
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
 }
 
 function karaokeStage(stage?: string) {

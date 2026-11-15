@@ -27,7 +27,7 @@ import { FileUpload } from "../../media/components/FileUpload";
 import { MediaPlayer } from "../../media/components/MediaPlayer";
 import { useSelectedAsset } from "../../media/hooks/useSelectedAsset";
 import { useProject } from "../../projects/context/ProjectContext";
-import { formatBytes } from "../../../shared/lib/format";
+import { formatBytes, formatDuration } from "../../../shared/lib/format";
 
 type FaceIdentity = {
   id: string;
@@ -351,7 +351,7 @@ export function FaceSwapPage() {
                       </strong>
                       <div className="mt-2 grid gap-1 text-xs text-zinc-500 dark:text-zinc-400">
                         <span>
-                          {formatDuration(
+                          {formatVideoDuration(
                             Number(
                               video.durationSeconds ||
                                 video.metadata?.durationSeconds ||
@@ -617,15 +617,8 @@ function SectionHeading({
   );
 }
 
-function formatDuration(seconds: number) {
-  if (!seconds) return "Duracion por detectar";
-  const total = Math.max(0, Math.round(seconds));
-  const hours = Math.floor(total / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  const remainingSeconds = total % 60;
-  return hours
-    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`
-    : `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+function formatVideoDuration(seconds: number) {
+  return seconds ? formatDuration(seconds) : "Duracion por detectar";
 }
 
 function EmptyIdentityState({ text }: { text: string }) {
