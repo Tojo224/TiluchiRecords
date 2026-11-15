@@ -11,6 +11,7 @@ import { Notice } from "../../../components/ui/Notice";
 import { FileUpload } from "../../media/components/FileUpload";
 import { MediaPlayer } from "../../media/components/MediaPlayer";
 import { useSelectedAsset } from "../../media/hooks/useSelectedAsset";
+import { useJobForType } from "../../jobs/hooks/useJobForType";
 import { formatBytes, formatDuration } from "../../../shared/lib/format";
 import { VIDEO_FILE_ACCEPT } from "../../../shared/media/asset-files";
 import type { MediaAsset } from "../../../shared/types/domain";
@@ -38,18 +39,20 @@ export function KaraokePage() {
     selectedId: videoId,
     setSelectedId: setVideoId,
   } = useSelectedAsset(videos);
-  const karaokeJob = (project.jobs || []).find(
-    (job) =>
-      job.type === "GENERATE_KARAOKE" && job.payload?.videoAssetId === videoId,
+  const {
+    job: karaokeJob,
+    running: processing,
+    failed,
+  } = useJobForType(
+    project.jobs,
+    "GENERATE_KARAOKE",
+    (job) => job.payload?.videoAssetId === videoId,
   );
   const karaokeVideo = (project.mediaAssets || []).find(
     (asset) =>
       asset.kind === "KARAOKE_VIDEO" &&
       asset.status === "READY" &&
       asset.metadata?.sourceJobId === karaokeJob?.id,
-  );
-  const processing = ["PENDING", "PROCESSING"].includes(
-    karaokeJob?.status || "",
   );
   const latestPerformance = (project.mediaAssets || [])
     .filter(
@@ -102,9 +105,8 @@ export function KaraokePage() {
   }
 
   const stage = karaokeStage(karaokeJob?.result?.stage);
-  const failed = karaokeJob?.status === "FAILED";
   const statusMessage = failed
-    ? friendlyKaraokeError(karaokeJob.errorMessage)
+    ? friendlyKaraokeError(karaokeJob?.errorMessage)
     : message;
 
   return (

@@ -12,6 +12,7 @@ import { useSelectedAsset } from "../../media/hooks/useSelectedAsset";
 import { MUSIC_FILE_ACCEPT } from "../../../shared/media/asset-files";
 import { MediaPlayer } from "../../media/components/MediaPlayer";
 import { useActiveJobPolling } from "../../jobs/hooks/useActiveJobPolling";
+import { getJobFlags, selectJobForType } from "../../jobs/hooks/useJobForType";
 import { useProject } from "../../projects/context/ProjectContext";
 
 export function MusicVideoPage() {
@@ -45,26 +46,27 @@ export function MusicVideoPage() {
   } = useSelectedAsset(audios);
   const state = useMemo(() => {
     const jobs = project.jobs || [];
-    const analysisJob = jobs.find(
-      (job) =>
-        job.type === "ANALYZE_AUDIO" && job.payload?.audioAssetId === audioId,
+    const analysisJob = selectJobForType(
+      jobs,
+      "ANALYZE_AUDIO",
+      (job) => job.payload?.audioAssetId === audioId,
     );
     const analysis =
       analysisJob?.status === "COMPLETED" ? analysisJob : undefined;
-    const storyboardJob = jobs.find(
-      (job) =>
-        job.type === "GENERATE_STORYBOARD" &&
-        job.payload?.analysisJobId === analysis?.id,
+    const storyboardJob = selectJobForType(
+      jobs,
+      "GENERATE_STORYBOARD",
+      (job) => job.payload?.analysisJobId === analysis?.id,
     );
     const storyboard =
       storyboardJob?.status === "COMPLETED" &&
       storyboardJob.result?.schemaVersion === "music-video-v2"
         ? storyboardJob
         : undefined;
-    const clipJob = jobs.find(
-      (job) =>
-        job.type === "GENERATE_VIDEO_CLIPS" &&
-        job.payload?.storyboardJobId === storyboard?.id,
+    const clipJob = selectJobForType(
+      jobs,
+      "GENERATE_VIDEO_CLIPS",
+      (job) => job.payload?.storyboardJobId === storyboard?.id,
     );
     const completedClipJob =
       clipJob?.status === "COMPLETED" ? clipJob : undefined;
@@ -74,9 +76,10 @@ export function MusicVideoPage() {
         asset.status === "READY" &&
         asset.metadata?.sourceJobId === completedClipJob?.id,
     );
-    const composeJob = jobs.find(
+    const composeJob = selectJobForType(
+      jobs,
+      "COMPOSE_VIDEOCLIP",
       (job) =>
-        job.type === "COMPOSE_VIDEOCLIP" &&
         job.payload?.audioAssetId === audioId &&
         (job.payload?.clipJobId === completedClipJob?.id ||
           (clips.length > 0 &&
@@ -104,22 +107,18 @@ export function MusicVideoPage() {
         : []) as StoryboardScene[],
     };
   }, [audioId, project.jobs, project.mediaAssets]);
-  const analysisRunning =
-    state.analysisJob?.status === "PENDING" ||
-    state.analysisJob?.status === "PROCESSING";
-  const analysisFailed = state.analysisJob?.status === "FAILED";
-  const storyboardRunning =
-    state.storyboardJob?.status === "PENDING" ||
-    state.storyboardJob?.status === "PROCESSING";
-  const storyboardFailed = state.storyboardJob?.status === "FAILED";
-  const clipRunning =
-    state.clipJob?.status === "PENDING" ||
-    state.clipJob?.status === "PROCESSING";
-  const clipFailed = state.clipJob?.status === "FAILED";
-  const composeRunning =
-    state.composeJob?.status === "PENDING" ||
-    state.composeJob?.status === "PROCESSING";
-  const composeFailed = state.composeJob?.status === "FAILED";
+  const { running: analysisRunning, failed: analysisFailed } = getJobFlags(
+    state.analysisJob,
+  );
+  const { running: storyboardRunning, failed: storyboardFailed } = getJobFlags(
+    state.storyboardJob,
+  );
+  const { running: clipRunning, failed: clipFailed } = getJobFlags(
+    state.clipJob,
+  );
+  const { running: composeRunning, failed: composeFailed } = getJobFlags(
+    state.composeJob,
+  );
   const autoStarted = useRef(new Set<string>());
 
   useActiveJobPolling(

@@ -27,6 +27,7 @@ import { FileUpload } from "../../media/components/FileUpload";
 import { MediaPlayer } from "../../media/components/MediaPlayer";
 import { useSelectedAsset } from "../../media/hooks/useSelectedAsset";
 import { useActiveJobPolling } from "../../jobs/hooks/useActiveJobPolling";
+import { useJobForType } from "../../jobs/hooks/useJobForType";
 import { useProject } from "../../projects/context/ProjectContext";
 import { formatBytes, formatDuration } from "../../../shared/lib/format";
 
@@ -89,10 +90,10 @@ export function FaceSwapPage() {
     setSelectedId: setVideoId,
   } = useSelectedAsset(videos);
 
-  const analysisJob = (project.jobs || []).find(
-    (job) =>
-      job.type === "ANALYZE_VIDEO_FACES" &&
-      job.payload?.sourceVideoAssetId === videoId,
+  const { job: analysisJob, running: analysisRunning } = useJobForType(
+    project.jobs,
+    "ANALYZE_VIDEO_FACES",
+    (job) => job.payload?.sourceVideoAssetId === videoId,
   );
   const identities = (
     analysisJob?.status === "COMPLETED" &&
@@ -100,24 +101,23 @@ export function FaceSwapPage() {
       ? analysisJob.result.identities
       : []
   ) as FaceIdentity[];
-  const analysisRunning =
-    analysisJob?.status === "PENDING" || analysisJob?.status === "PROCESSING";
 
-  const faceSwapJob = (project.jobs || []).find((job) => {
-    const jobIdentityIds = Array.isArray(job.payload?.targetIdentityIds)
-      ? job.payload.targetIdentityIds
-      : job.payload?.targetIdentityId
-        ? [job.payload.targetIdentityId]
-        : [];
-    return (
-      job.type === "FACE_SWAP" &&
-      job.payload?.sourceImageAssetId === imageId &&
-      job.payload?.sourceVideoAssetId === videoId &&
-      sameIdentitySelection(jobIdentityIds, selectedIdentityIds)
-    );
-  });
-  const swapRunning =
-    faceSwapJob?.status === "PENDING" || faceSwapJob?.status === "PROCESSING";
+  const { job: faceSwapJob, running: swapRunning } = useJobForType(
+    project.jobs,
+    "FACE_SWAP",
+    (job) => {
+      const jobIdentityIds = Array.isArray(job.payload?.targetIdentityIds)
+        ? job.payload.targetIdentityIds
+        : job.payload?.targetIdentityId
+          ? [job.payload.targetIdentityId]
+          : [];
+      return (
+        job.payload?.sourceImageAssetId === imageId &&
+        job.payload?.sourceVideoAssetId === videoId &&
+        sameIdentitySelection(jobIdentityIds, selectedIdentityIds)
+      );
+    },
+  );
   const result = (project.mediaAssets || []).find(
     (asset) =>
       asset.kind === "FACE_SWAP_RESULT_VIDEO" &&
