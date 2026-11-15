@@ -618,7 +618,14 @@ function SectionHeading({
 }
 
 function formatVideoDuration(seconds: number) {
-  return seconds ? formatDuration(seconds) : "Duracion por detectar";
+  if (!seconds) return "Duracion por detectar";
+  const total = Math.max(0, Math.round(seconds));
+  if (total < 3600) return formatDuration(total);
+  // Videos of one hour or more keep the h:mm:ss format used before the refactor.
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const remainingSeconds = total % 60;
+  return `${hours}:${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
 function EmptyIdentityState({ text }: { text: string }) {
