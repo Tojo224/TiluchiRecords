@@ -41,7 +41,7 @@ Reduce duplication and fragility in the web client without changing user-visible
 Each task: delegated direct (one bounded writer, sequential). Trigger: writer trigger (2+ non-trivial files).
 
 ## Progress
-T1-T6 done and verified (build, unit tests, lint; format:check clean for touched files). T7 pending.
+T1-T6 done and verified (build, unit tests, lint; format:check clean for touched files). T7 partial: MusicVideoPage split; FaceSwapPage next.
 
 ## Evidence (commit per task)
 - T1: e073694 chore(web): add vitest unit testing setup
@@ -50,7 +50,8 @@ T1-T6 done and verified (build, unit tests, lint; format:check clean for touched
 - T4: 435480c refactor(web): stabilize ProjectContext callbacks and error typing (lint warnings 8 -> 6)
 - T5: fd670db refactor(web): unify job polling in useJobPolling (single timer in ProjectContext via useJobPolling: 1s while a page retains fast polling, else 3s; pages call useActiveJobPolling)
 - T6: 6ab4f19 refactor(web): add useJobForType and drop repeated job flags (pure selectJobForType/getJobFlags + thin useJobForType; all pages kept first-match-in-list-order semantics; MusicVideoPage uses the pure helpers inside its dependent useMemo chain; lint warnings stay 6; 25 unit tests)
+- T7 (partial): 7db944d refactor(web): split MusicVideoPage into focused components (page 651 -> 388 lines; new components/PhaseTwoPanel, SceneList; lib/scene-labels, music-video-state with unit tests; 39 unit tests; lint warnings stay 6; exceeds the ~400-line heuristic naturally because it is a verbatim move; FaceSwapPage pending)
 - Note: format:check fails on ~44 untouched files on Windows because of CRLF checkouts (autocrlf); pre-existing.
 
 ## Next step
-T7.
+T7: split FaceSwapPage (MusicVideoPage done).
