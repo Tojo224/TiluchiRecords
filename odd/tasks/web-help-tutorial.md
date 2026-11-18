@@ -40,7 +40,7 @@ Chain strategy (user decision): PRs target `refactor/web-adjustments` (the lates
 ## Tasks
 - [x] T1 Inline help: reusable `DisabledReason`; pure blocker functions (face-swap, karaoke, music-video phase 2) with unit tests; wire into pages; explicit `tone` on Notice usage instead of `includes("correctamente")`; clearer error copy
 - [x] T2 Tour foundation: add `driver.js`; `src/tour/` (snapshot, sameInputs, missions, storage, tourSelector) with unit tests; `data-tour` anchors (~11)
-- [ ] T3 Tour runner + UI: TourProvider, TourProjectBridge, welcome, MissionChecklist, micro-tours, exit/Esc, reduced-motion, dark theme styling
+- [x] T3 Tour runner + UI: TourProvider, TourProjectBridge, welcome, MissionChecklist, micro-tours, exit/Esc, reduced-motion, dark theme styling
 - [ ] T4 `/help` page: typed content per flow, route in App.tsx, link inside existing Sidebar nav, "Repetir tutorial"
 - [ ] T5 (optional) Playwright e2e of the tour path
 
@@ -48,7 +48,7 @@ Chain strategy (user decision): PRs target `refactor/web-adjustments` (the lates
 Each task: delegated direct (one bounded writer, sequential). Trigger: writer trigger (2+ non-trivial files).
 
 ## Progress
-T1 and T2 done, verified, reviewed and pushed. Running authored count: 477 lines (> 400 budget): chain strategy decided (PRs to `refactor/web-adjustments`, opened by the user).
+T1, T2, T3 and follow-ups done, verified and reviewed (pushed after this commit). Running authored count: 477 lines (> 400 budget): chain strategy decided (PRs to `refactor/web-adjustments`, opened by the user).
 
 ## Evidence (commit per task)
 - T1: 640afb4 feat(web): explain disabled actions with inline requirement hints (15 files, +408/-69; new DisabledReason, shared/lib/blockers, karaoke-state; getFaceSwapBlockers/getPlanBlockers/getProduceBlockers; explicit Notice tone in Karaoke/Files/ProjectOverview). Checks: build OK; lint 0 errors, 6 warnings (baseline); unit tests 63 passed (baseline 48; parent re-run 63 passed); prettier clean on touched files. Disabled equivalence: face swap checked against legacy expression over 2^7 combinations. Intentional change: "Generacion de karaoke iniciada." now shows success tone (was error).
@@ -58,10 +58,15 @@ T1 and T2 done, verified, reviewed and pushed. Running authored count: 477 lines
 - T2: 9eaab5d feat(web): add tour foundation with missions, storage and anchors (18 files, +727/-2; tests are about half; driver.js 1.14.0 pinned, not imported yet; src/tour/{anchors,snapshot,missions,storage}; 11 data-tour anchors; FileUpload and MediaPlayer got an optional additive `anchor` prop). Checks: build OK; lint 0 errors, 6 warnings; unit tests 88 passed (baseline 63; parent re-run 88). Note: `projectCount` is not derived by snapshotFromProject; the T3 provider/bridge must supply it.
 - T2 review: assessed medium (slice 792 lines incl. doc commit, configuration_change in package-lock.json); consent granted by the user; native review (reliability) approved, authority burned (lineage review-91fa384d6414b7a0). Reviewed boundary advances to 9eaab5d.
 
+- T3: two commits. A 2a1beec feat(web): add tour runner, steps and progress reconciliation (8 files, +682: steps, progress, tourRunner wrapping driver.js, popover dark styles, render test proving data-tour reaches the DOM). B 62dac25 feat(web): wire adaptive tour provider, mission checklist and welcome (12 files, +1038, ~480 tests: TourProvider + useTour, TourProjectBridge inside ProjectProviderLayout, MissionChecklist, TourWelcome, TourNotices, AppLayout wiring, test cleanup in setup). Both exceed ~400 mostly from tests (not trimmed). Checks: build OK; lint 0 errors/6 warnings; unit tests 125 passed (parent re-run 125). Welcome is an in-flow section (not a modal) so it cannot intercept e2e clicks; no new nav/aside landmark.
+- T3 review: assessed medium (slice 1836 lines); consent granted by the user; native review (reliability) approved with 1 WARNING + 2 SUGGESTIONS, authority burned (lineage review-f1627301110eda21). Reviewed boundary advances to 62dac25.
+- Follow-ups commit 44322da fix(web): address review follow-ups for inline help and tour (11 files: baseline scope "all|project|none" so the create-project toast is no longer silenced on a fresh project route; userId change clears notices/tour/bridge; tests for tour disposal on route leave; DisabledReason always-mounted live region; notice-tone helper). Checks: build OK; lint 0 errors/6 warnings; unit tests 135 passed (parent re-run 135). Assessed medium, 271 lines, under_budget: no review due, stays pending in the next slice.
+
 ## Follow-ups (advisory, non-blocking, from the reviews)
-- T2 review R3-001 (WARNING): add a render test proving `data-tour` reaches the DOM through Button/FileUpload/MediaPlayer (tourSelector matches a rendered element). Fold into T3.
+- All previous follow-ups (T1 R3-001/R3-002, T2 R3-001, T3 R3-001..003) addressed in 44322da.
+- Open: MusicVideoPage has a similar inline tone expression not extracted to the notice-tone helper (low priority).
 - R3-001: extract a pure tone helper with a unit test for the Karaoke/Files/ProjectOverview Notice tone mapping.
 - R3-002: DisabledReason: always render the live-region container so screen readers announce later changes.
 
 ## Next step
-T3.
+T4 (/help page).
