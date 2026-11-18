@@ -1,5 +1,5 @@
 import { CheckCircle2, Music, Play, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../../../components/ui/Button";
 import { DisabledReason } from "../../../components/ui/DisabledReason";
 import { Notice } from "../../../components/ui/Notice";
@@ -71,6 +71,19 @@ export function MusicVideoPage() {
   const [messageTone, setMessageTone] = useState<"success" | "error">(
     "success",
   );
+
+  const showMessage = useCallback(
+    (text: string, tone: "success" | "error" = "success") => {
+      setMessage(text);
+      setMessageTone(tone);
+      if (tone === "success") {
+        toast.success(text);
+      } else {
+        toast.error(text);
+      }
+    },
+    [toast],
+  );
   const audios = useMemo(
     () =>
       (project.mediaAssets || []).filter(
@@ -136,7 +149,7 @@ export function MusicVideoPage() {
     })
       .then(() => showMessage("Creando el plan de escenas..."))
       .catch((error) => showMessage((error as Error).message, "error"));
-  }, [createJob, state.analysis, state.storyboardJob]);
+  }, [createJob, showMessage, state.analysis, state.storyboardJob]);
 
   useEffect(() => {
     const clipJob = state.clipJob;
@@ -159,7 +172,14 @@ export function MusicVideoPage() {
     })
       .then(() => showMessage("Componiendo el videoclip final..."))
       .catch((error) => showMessage((error as Error).message, "error"));
-  }, [audio, createJob, state.clipJob, state.clips, state.composeJob]);
+  }, [
+    audio,
+    createJob,
+    showMessage,
+    state.clipJob,
+    state.clips,
+    state.composeJob,
+  ]);
 
   useEffect(() => {
     if (
@@ -183,16 +203,6 @@ export function MusicVideoPage() {
     messageTone,
     storyboardRunning,
   ]);
-
-  function showMessage(text: string, tone: "success" | "error" = "success") {
-    setMessage(text);
-    setMessageTone(tone);
-    if (tone === "success") {
-      toast.success(text);
-    } else {
-      toast.error(text);
-    }
-  }
 
   async function upload(file: File) {
     try {

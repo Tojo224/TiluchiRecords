@@ -7,7 +7,7 @@ import {
   Users,
   Video,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../../app/providers/AuthProvider";
 import { useToast } from "../../../components/ui/Toast";
 import { Button } from "../../../components/ui/Button";
@@ -51,6 +51,19 @@ export function FaceSwapPage() {
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<"success" | "error">(
     "success",
+  );
+
+  const showMessage = useCallback(
+    (text: string, tone: "success" | "error" = "success") => {
+      setMessage(text);
+      setMessageTone(tone);
+      if (tone === "success") {
+        toast.success(text);
+      } else {
+        toast.error(text);
+      }
+    },
+    [toast],
   );
   const requestedAnalysis = useRef(new Set<string>());
 
@@ -159,7 +172,7 @@ export function FaceSwapPage() {
         setAnalysisStartError(value);
         showMessage(value, "error");
       });
-  }, [analysisJob, createJob, videoId]);
+  }, [analysisJob, createJob, showMessage, videoId]);
 
   useActiveJobPolling(retainFastPolling, analysisRunning || swapRunning);
 
@@ -248,16 +261,6 @@ export function FaceSwapPage() {
       showMessage((error as Error).message, "error");
     } finally {
       setBusy(false);
-    }
-  }
-
-  function showMessage(value: string, tone: "success" | "error" = "success") {
-    setMessage(value);
-    setMessageTone(tone);
-    if (tone === "success") {
-      toast.success(value);
-    } else {
-      toast.error(value);
     }
   }
 
