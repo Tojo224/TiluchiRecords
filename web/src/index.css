@@ -81,7 +81,9 @@
   border-radius: 0.375rem;
 }
 
-.driver-popover.tiluchi-tour-popover .tiluchi-tour-exit {
+.driver-popover.tiluchi-tour-popover
+  .driver-popover-footer
+  button.tiluchi-tour-exit {
   margin-right: auto;
   border: 0;
   background: transparent;
@@ -109,9 +111,24 @@
   border-color: #3f3f46;
 }
 
-.dark .driver-popover.tiluchi-tour-popover .tiluchi-tour-exit {
+.dark
+  .driver-popover.tiluchi-tour-popover
+  .driver-popover-footer
+  button.tiluchi-tour-exit {
   background: transparent;
+  border: 0;
   color: #a1a1aa;
+}
+
+.dark .driver-popover.tiluchi-tour-popover .driver-popover-close-btn {
+  color: #d4d4d8;
+}
+
+.dark .driver-popover.tiluchi-tour-popover .driver-popover-close-btn:hover,
+.dark
+  .driver-popover.tiluchi-tour-popover
+  .driver-popover-close-btn:focus-visible {
+  color: #ffffff;
 }
 
 .dark .driver-popover.tiluchi-tour-popover .driver-popover-arrow-side-top {

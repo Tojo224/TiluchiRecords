@@ -17,7 +17,11 @@ import {
   sameSnapshot,
   type TourSnapshot,
 } from "./snapshot";
-import { stepsForMission } from "./steps";
+import {
+  MISSION_UNAVAILABLE_HINTS,
+  TOUR_UNAVAILABLE_MESSAGE,
+  stepsForMission,
+} from "./steps";
 import {
   DEFAULT_TOUR_PROGRESS,
   loadProgress,
@@ -35,6 +39,7 @@ import {
 } from "./useTour";
 
 const MAX_NOTICES = 3;
+const PROJECT_ROUTE_WAIT_MS = 5000;
 
 type Store = { userId: string; progress: TourProgress };
 
@@ -58,7 +63,12 @@ function sameReport(a: ProjectReport | null, b: ProjectReport | null) {
  */
 export function TourProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const { projects, loading: projectsLoading, error } = useProjects();
+  const {
+    projects,
+    loading: projectsLoading,
+    error,
+    refresh: refreshProjects,
+  } = useProjects();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const routeProjectId =
@@ -77,6 +87,9 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const noticeId = useRef(0);
   const disposeTour = useRef<(() => void) | null>(null);
   const tourRoute = useRef<string | null>(null);
+  // Last project the bridge reported: the project list in this provider is
+  // fetched once, so it can miss a project created later.
+  const lastProjectId = useRef<string | null>(null);
 
   const progress = store && store.userId === userId ? store.progress : null;
 
@@ -93,6 +106,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
     baselineDone.current = false;
     seenProjects.current.clear();
     lastEval.current = undefined;
+    lastProjectId.current = null;
     stopTour();
     setNotices((current) => (current.length ? [] : current));
     setReport(null);
@@ -119,11 +133,10 @@ export function TourProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const reportProject = useCallback(
-    (next: ProjectReport | null) =>
-      setReport((current) => (sameReport(current, next) ? current : next)),
-    [],
-  );
+  const reportProject = useCallback((next: ProjectReport | null) => {
+    if (next?.projectId) lastProjectId.current = next.projectId;
+    setReport((current) => (sameReport(current, next) ? current : next));
+  }, []);
 
   // Global part from the list; project part from the bridge (same project only).
   const projectPart =
@@ -205,43 +218,72 @@ export function TourProvider({ children }: { children: ReactNode }) {
   }, [pathname, stopTour]);
   useEffect(() => stopTour, [stopTour]);
 
-  const latestProjectId = useMemo(() => {
-    const sorted = [...projects].sort((a, b) =>
-      (b.updatedAt || b.createdAt).localeCompare(a.updatedAt || a.createdAt),
-    );
-    return sorted[0]?.id ?? null;
-  }, [projects]);
+  const latestOf = useCallback(
+    (list: readonly { id: string; createdAt: string; updatedAt?: string }[]) =>
+      [...list].sort((a, b) =>
+        (b.updatedAt || b.createdAt).localeCompare(a.updatedAt || a.createdAt),
+      )[0]?.id ?? null,
+    [],
+  );
 
   const startMission = useCallback(
     (missionId: string) => {
       const mission = MISSIONS.find((item) => item.id === missionId);
       if (!mission) return;
-      const projectId = routeProjectId ?? latestProjectId ?? undefined;
-      let targetId = mission.id;
-      let route = mission.route(projectId);
-      if (route === null) {
-        // Project missions need a project first: point the user to create one.
-        targetId = "create-project";
-        route = "/projects";
-        pushNotices([
-          { tone: "info", message: "Primero crea un proyecto para continuar." },
-        ]);
+      const launch = (projectId: string | null) => {
+        let targetId = mission.id;
+        let route = mission.route(projectId ?? undefined);
+        if (route === null) {
+          // Project missions need a project first: point the user to create one.
+          targetId = "create-project";
+          route = "/projects";
+          pushNotices([
+            {
+              tone: "info",
+              message: "Primero crea un proyecto para continuar.",
+            },
+          ]);
+        }
+        stopTour();
+        if (route !== pathname) navigate(route);
+        tourRoute.current = route;
+        setActiveMissionId(targetId);
+        const hint = MISSION_UNAVAILABLE_HINTS[targetId];
+        disposeTour.current = runMicroTour(stepsForMission(targetId), {
+          waitMs: route.startsWith("/projects/")
+            ? PROJECT_ROUTE_WAIT_MS
+            : undefined,
+          onUnavailable: () =>
+            pushNotices([
+              { tone: "info", message: TOUR_UNAVAILABLE_MESSAGE },
+              ...(hint ? [{ tone: "info" as const, message: hint }] : []),
+            ]),
+          onDestroy: () => {
+            disposeTour.current = null;
+            tourRoute.current = null;
+            setActiveMissionId(null);
+          },
+        });
+      };
+      const known =
+        routeProjectId ?? lastProjectId.current ?? latestOf(projects);
+      if (known || mission.route(undefined) !== null) {
+        launch(known);
+        return;
       }
-      stopTour();
-      if (route !== pathname) navigate(route);
-      tourRoute.current = route;
-      setActiveMissionId(targetId);
-      disposeTour.current = runMicroTour(stepsForMission(targetId), {
-        onDestroy: () => {
-          disposeTour.current = null;
-          tourRoute.current = null;
-          setActiveMissionId(null);
-        },
-      });
+      // The list may be stale (project created after it was fetched):
+      // refresh once before telling the user to create one.
+      Promise.resolve()
+        .then(refreshProjects)
+        .then((fresh) => (fresh ? latestOf(fresh) : null))
+        .catch(() => null)
+        .then(launch);
     },
     [
       routeProjectId,
-      latestProjectId,
+      projects,
+      latestOf,
+      refreshProjects,
       pathname,
       navigate,
       stopTour,

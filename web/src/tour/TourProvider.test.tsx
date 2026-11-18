@@ -14,7 +14,7 @@ const projectsState = vi.hoisted(() => ({
     projects: [] as unknown[],
     loading: false,
     error: "",
-    refresh: async () => undefined,
+    refresh: vi.fn(async (): Promise<Project[] | undefined> => undefined),
   },
 }));
 const run = vi.hoisted(() => vi.fn());
@@ -61,6 +61,7 @@ beforeEach(() => {
   localStorage.clear();
   auth.user = { id: "u1" };
   setProjects([]);
+  vi.mocked(projectsState.value.refresh).mockReset();
   run.mockReset();
   run.mockReturnValue(vi.fn());
 });
@@ -145,12 +146,79 @@ describe("TourProvider", () => {
     expect(tour.activeMissionId).toBe("upload-video");
   });
 
-  it("asks for a project first when a project mission has none", () => {
+  it("asks for a project first when a project mission has none", async () => {
     render(tree());
-    act(() => tour.startMission("upload-video"));
+    await act(async () => tour.startMission("upload-video"));
     expect(screen.getByTestId("path")).toHaveTextContent("/projects");
     expect(run.mock.calls[0][0][0].target).toBe("new-project");
     expect(tour.notices[0].message).toMatch(/Primero crea un proyecto/);
+  });
+
+  it("uses the last seen project when the list is stale", async () => {
+    render(tree("/projects/p9"));
+    act(() => tour.reportProject({ projectId: "p9", snapshot: {} }));
+    act(() => navigateTo("/dashboard"));
+    await act(async () => tour.startMission("upload-video"));
+    expect(screen.getByTestId("path")).toHaveTextContent(
+      "/projects/p9/karaoke",
+    );
+    expect(tour.notices.map((notice) => notice.message)).not.toContain(
+      "Primero crea un proyecto para continuar.",
+    );
+    expect(projectsState.value.refresh).not.toHaveBeenCalled();
+  });
+
+  it("refreshes the list once before saying there is no project", async () => {
+    vi.mocked(projectsState.value.refresh).mockResolvedValueOnce([
+      project("p7"),
+    ]);
+    render(tree());
+    await act(async () => tour.startMission("upload-video"));
+    expect(projectsState.value.refresh).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("path")).toHaveTextContent(
+      "/projects/p7/karaoke",
+    );
+  });
+
+  it("still asks to create a project when there truly is none", async () => {
+    render(tree());
+    await act(async () => tour.startMission("sing-karaoke"));
+    expect(projectsState.value.refresh).toHaveBeenCalledTimes(1);
+    expect(tour.notices.map((notice) => notice.message)).toContain(
+      "Primero crea un proyecto para continuar.",
+    );
+  });
+
+  it("forgets the last seen project when the user changes", async () => {
+    const { rerender } = render(tree("/projects/p9"));
+    act(() => tour.reportProject({ projectId: "p9", snapshot: {} }));
+    act(() => navigateTo("/dashboard"));
+    auth.user = { id: "u2" };
+    rerender(tree("/dashboard"));
+    await act(async () => tour.startMission("upload-video"));
+    expect(screen.getByTestId("path")).not.toHaveTextContent("p9");
+  });
+
+  it("tells the user when the tour has nothing to show", () => {
+    setProjects([project("p1")]);
+    render(tree());
+    act(() => {
+      void tour.startMission("sing-karaoke");
+    });
+    expect(run.mock.calls[0][1].waitMs).toBe(5000);
+    act(() => run.mock.calls[0][1].onUnavailable());
+    expect(tour.notices.map((notice) => notice.message)).toEqual([
+      expect.stringMatching(/Todavia no podemos mostrar este paso/),
+      "Para cantar primero necesitas un karaoke listo: usa Crear karaoke.",
+    ]);
+  });
+
+  it("uses only the generic notice when the mission has no hint", () => {
+    setProjects([project("p1")]);
+    render(tree());
+    act(() => tour.startMission("upload-video"));
+    act(() => run.mock.calls[0][1].onUnavailable());
+    expect(tour.notices).toHaveLength(1);
   });
 
   it("toasts create-project when a first-time user lands on the new project", () => {
@@ -186,11 +254,11 @@ describe("TourProvider", () => {
     expect(tour.notices).toEqual([]);
   });
 
-  it("clears notices and the active tour when the user changes", () => {
+  it("clears notices and the active tour when the user changes", async () => {
     const dispose = vi.fn();
     run.mockReturnValueOnce(dispose);
     const { rerender } = render(tree());
-    act(() => tour.startMission("upload-video"));
+    await act(async () => tour.startMission("upload-video"));
     expect(tour.notices).toHaveLength(1);
     expect(tour.activeMissionId).toBe("create-project");
     auth.user = { id: "u2" };

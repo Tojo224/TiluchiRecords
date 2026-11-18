@@ -95,6 +95,41 @@ describe("runMicroTour", () => {
     expect(onDestroy).toHaveBeenCalledTimes(1);
   });
 
+  it("reports unavailable when the first anchor never appears", async () => {
+    const onUnavailable = vi.fn();
+    const onDestroy = vi.fn();
+    runMicroTour([step], { onUnavailable, onDestroy, waitMs: 300 });
+    await vi.advanceTimersByTimeAsync(500);
+    expect(onUnavailable).toHaveBeenCalledTimes(1);
+    expect(onDestroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not report unavailable when a step is shown", () => {
+    addAnchor();
+    const onUnavailable = vi.fn();
+    runMicroTour([step], { onUnavailable });
+    expect(drive).toHaveBeenCalledTimes(1);
+    firstConfig()?.onDestroyed?.(undefined, {}, {} as never);
+    expect(onUnavailable).not.toHaveBeenCalled();
+  });
+
+  it("stays silent for later steps that are missing", () => {
+    addAnchor();
+    const onUnavailable = vi.fn();
+    const missing = { ...step, target: TOUR_ANCHORS.musicPlan };
+    runMicroTour([step, missing], { onUnavailable });
+    expect(firstConfig()?.steps).toHaveLength(1);
+    expect(onUnavailable).not.toHaveBeenCalled();
+  });
+
+  it("does not report unavailable when disposed on purpose", async () => {
+    const onUnavailable = vi.fn();
+    const dispose = runMicroTour([step], { onUnavailable, waitMs: 300 });
+    dispose();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(onUnavailable).not.toHaveBeenCalled();
+  });
+
   it("starts once a late anchor shows up", async () => {
     runMicroTour([step], { waitMs: 1000 });
     await vi.advanceTimersByTimeAsync(250);

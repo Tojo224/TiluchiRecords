@@ -6,6 +6,11 @@ import type { TourStep } from "./steps";
 export type RunMicroTourOptions = {
   /** Called once when the tour ends by itself (done, exit, Esc or no anchor). */
   onDestroy?: () => void;
+  /**
+   * Called (right before onDestroy) when the tour ended WITHOUT showing any
+   * step, e.g. the first anchor never appeared. Not called when disposed.
+   */
+  onUnavailable?: () => void;
   /** How long to wait for the first anchor to appear. */
   waitMs?: number;
 };
@@ -46,7 +51,7 @@ function toDriveSteps(steps: readonly TourStep[]): DriveStep[] {
 /**
  * Runs a micro-tour with driver.js. Elements are resolved lazily (first
  * VISIBLE anchor). If the first anchor never shows up the tour finishes
- * silently. Returns a disposer that is safe to call any number of times.
+ * and reports it through onUnavailable. Returns a disposer that is safe to call any number of times.
  */
 export function runMicroTour(
   steps: readonly TourStep[],
@@ -70,11 +75,13 @@ export function runMicroTour(
     document.removeEventListener("keydown", onKeyDown, true);
   }
 
-  function finish() {
+  function finish(unavailable = false) {
     if (finished) return;
     finished = true;
     cleanup();
-    if (!disposed) options.onDestroy?.();
+    if (disposed) return;
+    if (unavailable) options.onUnavailable?.();
+    options.onDestroy?.();
   }
 
   function closeTour() {
@@ -90,7 +97,7 @@ export function runMicroTour(
     try {
       const driveSteps = toDriveSteps(steps);
       if (driveSteps.length === 0) {
-        finish();
+        finish(true);
         return;
       }
       const reduced = prefersReducedMotion();
@@ -119,7 +126,7 @@ export function runMicroTour(
           exit.addEventListener("click", closeTour);
           popover.footer.appendChild(exit);
         },
-        onDestroyed: finish,
+        onDestroyed: () => finish(),
       });
       document.addEventListener("keydown", onKeyDown, true);
       instance.drive();
@@ -132,7 +139,7 @@ export function runMicroTour(
   function waitForFirstAnchor(attemptsLeft: number) {
     if (disposed) return;
     if (!steps.length) {
-      finish();
+      finish(true);
       return;
     }
     if (findTourElement(steps[0].target)) {
@@ -140,7 +147,7 @@ export function runMicroTour(
       return;
     }
     if (attemptsLeft <= 0) {
-      finish();
+      finish(true);
       return;
     }
     timer = setTimeout(() => waitForFirstAnchor(attemptsLeft - 1), POLL_MS);

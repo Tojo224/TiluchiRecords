@@ -73,7 +73,7 @@ export const MISSION_STEPS: Readonly<Record<string, readonly TourStep[]>> = {
       target: TOUR_ANCHORS.musicPrompt,
       title: "Cuentanos la idea",
       description:
-        "Describe el estilo o la historia que imaginas. Es opcional, pero ayuda a que las escenas se parezcan a lo que quieres.",
+        "Describe el estilo o la historia que imaginas. Es obligatoria: ya trae un ejemplo que puedes cambiar.",
       side: "top",
       interactive: true,
     },
@@ -115,6 +115,18 @@ export const MISSION_STEPS: Readonly<Record<string, readonly TourStep[]>> = {
     },
   ],
 };
+
+/**
+ * Extra hint shown when a mission's tour could not start (first anchor never
+ * appeared). Optional per mission; ASCII only.
+ */
+export const MISSION_UNAVAILABLE_HINTS: Readonly<Record<string, string>> = {
+  "sing-karaoke":
+    "Para cantar primero necesitas un karaoke listo: usa Crear karaoke.",
+};
+
+export const TOUR_UNAVAILABLE_MESSAGE =
+  "Todavia no podemos mostrar este paso. Espera a que cargue la pagina o completa el paso anterior.";
 
 export function stepsForMission(missionId: string): readonly TourStep[] {
   return MISSION_STEPS[missionId] ?? [];

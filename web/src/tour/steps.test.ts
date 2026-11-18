@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import modalSource from "../features/karaoke/components/KaraokeSingingModal.tsx?raw";
 import { TOUR_ANCHORS } from "./anchors";
 import { MISSIONS } from "./missions";
-import { MISSION_STEPS, stepsForMission } from "./steps";
+import {
+  MISSION_STEPS,
+  MISSION_UNAVAILABLE_HINTS,
+  TOUR_UNAVAILABLE_MESSAGE,
+  stepsForMission,
+} from "./steps";
 
 const anchorNames = Object.values(TOUR_ANCHORS) as string[];
 const allSteps = Object.values(MISSION_STEPS).flat();
@@ -34,6 +39,23 @@ describe("mission steps", () => {
     for (const step of allSteps) {
       expect(`${step.title}${step.description}`).toMatch(/^[\x20-\x7E]+$/);
       expect(step.interactive).toBe(true);
+    }
+  });
+
+  it("keeps the unavailable copy ASCII-only and tied to real missions", () => {
+    expect(TOUR_UNAVAILABLE_MESSAGE).toMatch(/^[\x20-\x7E]+$/);
+    for (const [id, hint] of Object.entries(MISSION_UNAVAILABLE_HINTS)) {
+      expect(Object.keys(MISSION_STEPS)).toContain(id);
+      expect(hint).toMatch(/^[\x20-\x7E]+$/);
+    }
+  });
+
+  it("never calls the mandatory visual direction optional", () => {
+    const prompt = allSteps.filter((step) => step.target === "music-prompt");
+    expect(prompt.length).toBeGreaterThan(0);
+    for (const step of prompt) {
+      expect(step.description).not.toMatch(/opcional/i);
+      expect(step.description).toMatch(/obligatoria/i);
     }
   });
 
