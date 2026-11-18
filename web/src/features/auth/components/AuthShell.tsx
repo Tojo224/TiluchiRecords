@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 
 export function AuthShell({
@@ -49,11 +50,11 @@ export function AuthShell({
             <ThemeToggle />
           </div>
           <div className="w-full max-w-md">
-            <div className="mb-10 flex items-center gap-4">
+            <Link to="/" className="mb-10 flex items-center gap-4 transition hover:opacity-85">
               <span className="size-16 shrink-0 overflow-hidden rounded-md bg-[#021116] shadow-lg shadow-emerald-500/15">
                 <img
                   src="/assets/Logo_TiluchiRecords.png"
-                  alt=""
+                  alt="TiluchiRecords Logo"
                   className="size-full object-contain"
                 />
               </span>
@@ -65,7 +66,7 @@ export function AuthShell({
                   Estudio creativo audiovisual
                 </small>
               </span>
-            </div>
+            </Link>
 
             <div className="mb-7">
               <h1 className="text-3xl font-semibold tracking-normal sm:text-4xl">

@@ -18,6 +18,7 @@ import { formatDate } from "../../../shared/lib/format";
 import type { MediaAssetKind, Project } from "../../../shared/types/domain";
 import { useProjects } from "../../projects/hooks/useProjects";
 import { ProjectCoverImage } from "../../projects/components/ProjectCoverImage";
+import { Skeleton, ProjectCardSkeleton } from "../../../components/ui/Skeleton";
 
 const HERO_IMAGE_DARK = "/assets/dashboard-studio-hero.png";
 const HERO_IMAGE_LIGHT = "/assets/dashboard-studio-hero-light.png";
@@ -202,7 +203,10 @@ export function DashboardPage() {
         </div>
 
         {loading ? (
-          <div className="h-32 animate-pulse rounded-lg bg-zinc-100 dark:bg-white/5" />
+          <div className="grid gap-3">
+            <ProjectCardSkeleton />
+            <ProjectCardSkeleton />
+          </div>
         ) : projects.length ? (
           <div className="grid gap-3">
             {projects.slice(0, 3).map((project, index) => (
@@ -284,9 +288,13 @@ function MetricCard({
           <span className="block text-xs leading-tight text-zinc-600 dark:text-zinc-300">
             {label}
           </span>
-          <strong className="mt-1 block text-2xl font-bold leading-none tabular-nums">
-            {loading ? "..." : value}
-          </strong>
+          {loading ? (
+            <Skeleton className="mt-1 h-6 w-12" />
+          ) : (
+            <strong className="mt-1 block text-2xl font-bold leading-none tabular-nums">
+              {value}
+            </strong>
+          )}
         </div>
       </div>
     </article>

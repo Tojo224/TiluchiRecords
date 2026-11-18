@@ -1,10 +1,11 @@
-import { CheckCircle2, Film, Music, Play } from "lucide-react";
+import { CheckCircle2, Film, Music, Play, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../../../components/ui/Button";
 import { Notice } from "../../../components/ui/Notice";
 import { PageHeader } from "../../../components/ui/PageHeader";
 import { Panel } from "../../../components/ui/Panel";
 import { JobProgress } from "../../../components/ui/JobProgress";
+import { useToast } from "../../../components/ui/Toast";
 import type { StoryboardScene } from "../../../shared/types/domain";
 import { FileUpload } from "../../media/components/FileUpload";
 import { AssetSelect } from "../../media/components/AssetSelect";
@@ -13,9 +14,18 @@ import { MUSIC_FILE_ACCEPT } from "../../../shared/media/asset-files";
 import { MediaPlayer } from "../../media/components/MediaPlayer";
 import { useProject } from "../../projects/context/ProjectContext";
 
+const PROMPT_PRESETS = [
+  { label: "🎬 Cinemático 8K", value: "realismo cinematográfico, iluminación volumétrica dramática, alta fidelidad, 8k" },
+  { label: "🌆 Cyberpunk Neón", value: "estética cyberpunk futurista, luces de neón moradas y cian, lluvia nocturna" },
+  { label: "🎨 Anime Studio", value: "estilo anime artesanal, colores vibrantes, fondos celestiales detallados" },
+  { label: "🌌 Surrealismo Onírico", value: "escenas surrealistas y etéreas, gravedad suspendida, atmósfera mágica" },
+  { label: "📼 VHS Retro 90s", value: "estética retro de los 90s, grano analógico de cinta VHS, colores saturados" },
+];
+
 export function MusicVideoPage() {
   const { project, assetUrls, uploadFile, createJob, downloadAsset, refresh } =
     useProject();
+  const { toast } = useToast();
   const [prompt, setPrompt] = useState(
     "realismo cinematografico con un protagonista y un mundo visual coherentes",
   );
@@ -205,6 +215,11 @@ export function MusicVideoPage() {
   function showMessage(text: string, tone: "success" | "error" = "success") {
     setMessage(text);
     setMessageTone(tone);
+    if (tone === "success") {
+      toast.success(text);
+    } else {
+      toast.error(text);
+    }
   }
 
   async function upload(file: File) {
@@ -337,25 +352,45 @@ export function MusicVideoPage() {
             </div>
           </div>
           <div className="grid gap-4">
-            <AssetSelect
-              label="Musica del proyecto"
-              assets={audios}
-              value={audioId}
-              onChange={setAudioId}
-              disabled={
-                busy ||
-                analysisRunning ||
-                storyboardRunning ||
-                clipRunning ||
-                composeRunning
-              }
-            />
-            <label>
-              Direccion visual
+            {audios.length === 0 ? (
+              <FileUpload
+                mode="dropzone"
+                accept={MUSIC_FILE_ACCEPT}
+                label="Arrastra tu pista musical aquí"
+                description="Formatos MP3, WAV o FLAC"
+                busy={busy}
+                onSelect={upload}
+              />
+            ) : (
+              <AssetSelect
+                label="Musica del proyecto"
+                assets={audios}
+                value={audioId}
+                onChange={setAudioId}
+                disabled={
+                  busy ||
+                  analysisRunning ||
+                  storyboardRunning ||
+                  clipRunning ||
+                  composeRunning
+                }
+              />
+            )}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                  <Sparkles size={14} className="text-emerald-500" />
+                  Dirección visual del videoclip
+                </label>
+                <span className="text-[11px] font-mono text-zinc-400">
+                  {prompt.length}/500
+                </span>
+              </div>
               <textarea
-                className="min-h-24"
+                className="w-full min-h-24 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs sm:text-sm text-zinc-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-white/10 dark:bg-[#071216] dark:text-white"
                 value={prompt}
                 maxLength={500}
+                placeholder="Describe la atmósfera, iluminación y estética deseada..."
                 disabled={
                   analysisRunning ||
                   storyboardRunning ||
@@ -364,7 +399,28 @@ export function MusicVideoPage() {
                 }
                 onChange={(event) => setPrompt(event.target.value)}
               />
-            </label>
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[11px] font-medium text-zinc-400 mr-1">
+                  Estilos sugeridos:
+                </span>
+                {PROMPT_PRESETS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => setPrompt(preset.value)}
+                    disabled={
+                      analysisRunning ||
+                      storyboardRunning ||
+                      clipRunning ||
+                      composeRunning
+                    }
+                    className="rounded-full border border-zinc-200 bg-white px-2.5 py-0.5 text-[11px] font-medium text-zinc-700 shadow-xs transition hover:border-emerald-500/50 hover:bg-emerald-50/50 hover:text-emerald-700 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-emerald-500/30 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-300"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             {(state.analysisJob || state.storyboardJob) && (
               <JobProgress
                 label={
@@ -380,10 +436,19 @@ export function MusicVideoPage() {
               />
             )}
             {state.analysis && (
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                {state.analysis.result?.durationSeconds}s de audio ·{" "}
-                {Math.round(Number(state.analysis.result?.tempo || 0))} BPM
-              </p>
+              <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-zinc-700 dark:text-zinc-300">
+                <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">
+                  BPM
+                </span>
+                <div className="min-w-0 flex-1">
+                  <span className="font-semibold text-zinc-900 dark:text-white">
+                    Análisis rítmico: {Math.round(Number(state.analysis.result?.tempo || 0))} BPM
+                  </span>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                    Duración: {state.analysis.result?.durationSeconds} segundos
+                  </p>
+                </div>
+              </div>
             )}
             <Button
               onClick={preparePlan}

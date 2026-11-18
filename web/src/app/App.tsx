@@ -5,6 +5,7 @@ import { ForgotPasswordPage } from "../features/auth/pages/ForgotPasswordPage";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { RegisterPage } from "../features/auth/pages/RegisterPage";
 import { ResetPasswordPage } from "../features/auth/pages/ResetPasswordPage";
+import { LandingPage } from "../features/landing/pages/LandingPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { FaceSwapPage } from "../features/face-swap/pages/FaceSwapPage";
 import { KaraokePage } from "../features/karaoke/pages/KaraokePage";
@@ -19,13 +20,14 @@ import { ProjectsPage } from "../features/projects/pages/ProjectsPage";
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/landing" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="security" element={<Navigate to="/profile" replace />} />

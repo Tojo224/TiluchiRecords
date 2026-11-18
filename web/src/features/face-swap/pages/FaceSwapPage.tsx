@@ -1,4 +1,5 @@
 import {
+  ArrowRight,
   Check,
   FileVideo2,
   Image as ImageIcon,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../../app/providers/AuthProvider";
+import { useToast } from "../../../components/ui/Toast";
 import { Button } from "../../../components/ui/Button";
 import { JobProgress } from "../../../components/ui/JobProgress";
 import { Notice } from "../../../components/ui/Notice";
@@ -42,6 +44,7 @@ type FaceIdentity = {
 
 export function FaceSwapPage() {
   const { api } = useAuth();
+  const { toast } = useToast();
   const { project, assetUrls, uploadFile, createJob, downloadAsset, refresh } =
     useProject();
   const [consent, setConsent] = useState(false);
@@ -251,12 +254,137 @@ export function FaceSwapPage() {
   function showMessage(value: string, tone: "success" | "error" = "success") {
     setMessage(value);
     setMessageTone(tone);
+    if (tone === "success") {
+      toast.success(value);
+    } else {
+      toast.error(value);
+    }
   }
 
   return (
     <>
       <PageHeader title="Face swap" description={project.name} />
       <Notice message={message} tone={messageTone} />
+
+      {/* Pipeline Stepper */}
+      <div className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+        {[
+          {
+            step: 1,
+            title: "Rostro Fuente",
+            desc: image ? image.name : "Pendiente",
+            done: Boolean(image),
+            active: !image,
+          },
+          {
+            step: 2,
+            title: "Video Objetivo",
+            desc: video ? video.name : "Pendiente",
+            done: Boolean(video),
+            active: Boolean(image) && !video,
+          },
+          {
+            step: 3,
+            title: "Detección Facial",
+            desc: selectedIdentityIds.length
+              ? `${selectedIdentityIds.length} selec.`
+              : analysisRunning
+                ? "Analizando..."
+                : "Pendiente",
+            done: selectedIdentityIds.length > 0,
+            active: Boolean(video) && selectedIdentityIds.length === 0,
+          },
+          {
+            step: 4,
+            title: "Swap & Render",
+            desc: swapRunning
+              ? "Procesando..."
+              : result
+                ? "Completado"
+                : "Listo",
+            done: Boolean(result),
+            active: selectedIdentityIds.length > 0 && !result,
+          },
+        ].map((item) => (
+          <div
+            key={item.step}
+            className={`flex items-center gap-2.5 rounded-xl border p-3 transition-all ${
+              item.done
+                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200"
+                : item.active
+                  ? "border-emerald-500 bg-white shadow-sm ring-2 ring-emerald-500/20 dark:bg-[#0b171c]"
+                  : "border-zinc-200 bg-zinc-50/60 text-zinc-400 dark:border-white/5 dark:bg-[#061014]"
+            }`}
+          >
+            <span
+              className={`flex size-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
+                item.done
+                  ? "bg-emerald-500 text-white"
+                  : item.active
+                    ? "bg-emerald-600 text-white animate-pulse"
+                    : "bg-zinc-200 text-zinc-600 dark:bg-white/10 dark:text-zinc-400"
+              }`}
+            >
+              {item.done ? <Check size={14} /> : item.step}
+            </span>
+            <div className="min-w-0">
+              <span className="block truncate text-xs font-semibold">
+                {item.title}
+              </span>
+              <span className="block truncate text-[11px] opacity-75">
+                {item.desc}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Dual Comparison Preview Card */}
+      {image && video && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/5 via-cyan-500/5 to-emerald-500/5 p-4 shadow-sm backdrop-blur">
+          <div className="flex items-center gap-3">
+            <div className="relative size-12 shrink-0 overflow-hidden rounded-lg border border-emerald-500/40 bg-black">
+              {assetUrls[image.id] ? (
+                <img
+                  src={assetUrls[image.id]}
+                  alt="Rostro"
+                  className="size-full object-cover"
+                />
+              ) : (
+                <Loader2 className="m-auto size-5 animate-spin text-emerald-400" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <span className="block text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                Rostro Fuente Seleccionado
+              </span>
+              <span className="block truncate text-sm font-semibold text-zinc-900 dark:text-white">
+                {image.name}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+            <ScanFace className="size-5 text-emerald-500 animate-pulse" />
+            <span className="hidden sm:inline">Swap hacia</span>
+            <ArrowRight className="size-4" />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="text-right min-w-0">
+              <span className="block text-xs font-medium text-cyan-600 dark:text-cyan-400">
+                Video Objetivo
+              </span>
+              <span className="block truncate text-sm font-semibold text-zinc-900 dark:text-white">
+                {video.name}
+              </span>
+            </div>
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-cyan-500/40 bg-cyan-500/10 text-cyan-500">
+              <Video className="size-6" />
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className="grid gap-4 xl:grid-cols-2">
         <Panel className="overflow-hidden border-emerald-200/80 bg-gradient-to-br from-white via-white to-emerald-50/50 p-0 dark:border-emerald-500/20 dark:from-[#0b171c] dark:via-[#0b171c] dark:to-emerald-950/20">
@@ -266,48 +394,62 @@ export function FaceSwapPage() {
             description="Imagen que se usara para reemplazar los rostros."
           />
           <div className="px-5 pb-5">
-            <AssetSelect
-              label="Imagen del proyecto"
-              assets={images}
-              value={imageId}
-              onChange={setImageId}
-              disabled={busy || swapRunning}
-            />
-            {image && (
-              <figure className="mt-3 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 shadow-sm dark:border-white/10 dark:bg-[#061014]">
-                <div className="grid h-52 place-items-center sm:h-60 lg:h-64">
-                  {assetUrls[image.id] ? (
-                    <img
-                      className="size-full object-contain"
-                      src={assetUrls[image.id]}
-                      alt={`Vista previa de ${image.name}`}
-                    />
-                  ) : (
-                    <div className="grid justify-items-center gap-2 text-zinc-500 dark:text-zinc-400">
-                      <Loader2 className="animate-spin" size={24} />
-                      <span className="text-xs">Cargando vista previa</span>
+            {images.length === 0 ? (
+              <div className="mt-2">
+                <FileUpload
+                  mode="dropzone"
+                  accept={IMAGE_FILE_ACCEPT}
+                  label="Arrastra una foto del rostro aquí o haz clic para subir"
+                  busy={busy || swapRunning}
+                  onSelect={uploadImage}
+                />
+              </div>
+            ) : (
+              <>
+                <AssetSelect
+                  label="Imagen del proyecto"
+                  assets={images}
+                  value={imageId}
+                  onChange={setImageId}
+                  disabled={busy || swapRunning}
+                />
+                {image && (
+                  <figure className="mt-3 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 shadow-sm dark:border-white/10 dark:bg-[#061014]">
+                    <div className="grid h-52 place-items-center sm:h-60 lg:h-64">
+                      {assetUrls[image.id] ? (
+                        <img
+                          className="size-full object-contain"
+                          src={assetUrls[image.id]}
+                          alt={`Vista previa de ${image.name}`}
+                        />
+                      ) : (
+                        <div className="grid justify-items-center gap-2 text-zinc-500 dark:text-zinc-400">
+                          <Loader2 className="animate-spin" size={24} />
+                          <span className="text-xs">Cargando vista previa</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <figcaption className="flex min-w-0 items-center gap-2 border-t border-zinc-200 bg-white px-3 py-2.5 dark:border-white/10 dark:bg-[#0b171c]">
-                  <ImageIcon
-                    className="shrink-0 text-emerald-600 dark:text-emerald-400"
-                    size={17}
+                    <figcaption className="flex min-w-0 items-center gap-2 border-t border-zinc-200 bg-white px-3 py-2.5 dark:border-white/10 dark:bg-[#0b171c]">
+                      <ImageIcon
+                        className="shrink-0 text-emerald-600 dark:text-emerald-400"
+                        size={17}
+                      />
+                      <span className="truncate text-sm font-medium">
+                        {image.name}
+                      </span>
+                    </figcaption>
+                  </figure>
+                )}
+                <div className="mt-3 flex justify-end">
+                  <FileUpload
+                    accept={IMAGE_FILE_ACCEPT}
+                    label={image ? "Cambiar imagen" : "Subir imagen"}
+                    busy={busy || swapRunning}
+                    onSelect={uploadImage}
                   />
-                  <span className="truncate text-sm font-medium">
-                    {image.name}
-                  </span>
-                </figcaption>
-              </figure>
+                </div>
+              </>
             )}
-            <div className="mt-3 flex justify-end">
-              <FileUpload
-                accept={IMAGE_FILE_ACCEPT}
-                label={image ? "Cambiar imagen" : "Subir imagen"}
-                busy={busy || swapRunning}
-                onSelect={uploadImage}
-              />
-            </div>
           </div>
         </Panel>
 
@@ -318,81 +460,95 @@ export function FaceSwapPage() {
             description="Video donde se reemplazaran los rostros seleccionados."
           />
           <div className="px-5 pb-5">
-            <AssetSelect
-              label="Video del proyecto"
-              assets={videos}
-              value={videoId}
-              onChange={setVideoId}
-              disabled={busy || analysisRunning || swapRunning}
-            />
-            {video && (
-              <div className="mt-3 grid overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#081216] sm:grid-cols-[minmax(0,1.35fr)_minmax(180px,0.65fr)]">
-                <div className="grid min-h-52 place-items-center bg-zinc-950 sm:min-h-64">
-                  {assetUrls[video.id] ? (
-                    <video
-                      className="size-full max-h-64 object-contain"
-                      controls
-                      preload="metadata"
-                      src={assetUrls[video.id]}
-                      aria-label={`Vista previa de ${video.name}`}
-                    />
-                  ) : (
-                    <Loader2 className="animate-spin text-zinc-400" size={24} />
-                  )}
-                </div>
-                <div className="flex min-w-0 flex-col justify-between gap-4 border-t border-zinc-200 p-4 dark:border-white/10 sm:border-l sm:border-t-0">
-                  <div className="flex min-w-0 gap-3">
-                    <span className="grid size-11 shrink-0 place-items-center rounded-md bg-zinc-100 text-zinc-600 dark:bg-white/10 dark:text-zinc-300">
-                      <FileVideo2 size={21} />
-                    </span>
-                    <div className="min-w-0">
-                      <strong className="block truncate text-sm">
-                        {video.name}
-                      </strong>
-                      <div className="mt-2 grid gap-1 text-xs text-zinc-500 dark:text-zinc-400">
-                        <span>
-                          {formatDuration(
-                            Number(
-                              video.durationSeconds ||
-                                video.metadata?.durationSeconds ||
-                                0,
-                            ),
-                          )}
-                        </span>
-                        <span>{formatBytes(video.sizeBytes)}</span>
-                        <span>
-                          {video.mimeType.split("/")[1]?.toUpperCase() ||
-                            "VIDEO"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <FileUpload
-                    accept={VIDEO_FILE_ACCEPT}
-                    label="Cambiar video"
-                    busy={busy || analysisRunning || swapRunning}
-                    onSelect={uploadVideo}
-                  />
-                </div>
-              </div>
-            )}
-            {!video && (
-              <div className="mt-3 flex min-h-52 flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-6 text-center dark:border-white/10 dark:bg-[#081216]">
-                <FileVideo2
-                  className="text-zinc-400"
-                  size={34}
-                  strokeWidth={1.5}
-                />
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  Selecciona o sube el video que deseas editar.
-                </p>
+            {videos.length === 0 ? (
+              <div className="mt-2">
                 <FileUpload
+                  mode="dropzone"
                   accept={VIDEO_FILE_ACCEPT}
-                  label="Subir video"
+                  label="Arrastra el video objetivo aquí o haz clic para subir"
                   busy={busy || analysisRunning || swapRunning}
                   onSelect={uploadVideo}
                 />
               </div>
+            ) : (
+              <>
+                <AssetSelect
+                  label="Video del proyecto"
+                  assets={videos}
+                  value={videoId}
+                  onChange={setVideoId}
+                  disabled={busy || analysisRunning || swapRunning}
+                />
+                {video && (
+                  <div className="mt-3 grid overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#081216] sm:grid-cols-[minmax(0,1.35fr)_minmax(180px,0.65fr)]">
+                    <div className="grid min-h-52 place-items-center bg-zinc-950 sm:min-h-64">
+                      {assetUrls[video.id] ? (
+                        <video
+                          className="size-full max-h-64 object-contain"
+                          controls
+                          preload="metadata"
+                          src={assetUrls[video.id]}
+                          aria-label={`Vista previa de ${video.name}`}
+                        />
+                      ) : (
+                        <Loader2 className="animate-spin text-zinc-400" size={24} />
+                      )}
+                    </div>
+                    <div className="flex min-w-0 flex-col justify-between gap-4 border-t border-zinc-200 p-4 dark:border-white/10 sm:border-l sm:border-t-0">
+                      <div className="flex min-w-0 gap-3">
+                        <span className="grid size-11 shrink-0 place-items-center rounded-md bg-zinc-100 text-zinc-600 dark:bg-white/10 dark:text-zinc-300">
+                          <FileVideo2 size={21} />
+                        </span>
+                        <div className="min-w-0">
+                          <strong className="block truncate text-sm">
+                            {video.name}
+                          </strong>
+                          <div className="mt-2 grid gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+                            <span>
+                              {formatDuration(
+                                Number(
+                                  video.durationSeconds ||
+                                    video.metadata?.durationSeconds ||
+                                    0,
+                                ),
+                              )}
+                            </span>
+                            <span>{formatBytes(video.sizeBytes)}</span>
+                            <span>
+                              {video.mimeType.split("/")[1]?.toUpperCase() ||
+                                "VIDEO"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <FileUpload
+                        accept={VIDEO_FILE_ACCEPT}
+                        label="Cambiar video"
+                        busy={busy || analysisRunning || swapRunning}
+                        onSelect={uploadVideo}
+                      />
+                    </div>
+                  </div>
+                )}
+                {!video && (
+                  <div className="mt-3 flex min-h-52 flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-6 text-center dark:border-white/10 dark:bg-[#081216]">
+                    <FileVideo2
+                      className="text-zinc-400"
+                      size={34}
+                      strokeWidth={1.5}
+                    />
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                      Selecciona o sube el video que deseas editar.
+                    </p>
+                    <FileUpload
+                      accept={VIDEO_FILE_ACCEPT}
+                      label="Subir video"
+                      busy={busy || analysisRunning || swapRunning}
+                      onSelect={uploadVideo}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </div>
         </Panel>

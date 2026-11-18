@@ -6,6 +6,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useToast } from "../../../components/ui/Toast";
 import { Button } from "../../../components/ui/Button";
 import { Notice } from "../../../components/ui/Notice";
 import { FileUpload } from "../../media/components/FileUpload";
@@ -18,6 +19,7 @@ import { useProject } from "../../projects/context/ProjectContext";
 import { KaraokeSingingModal } from "../components/KaraokeSingingModal";
 
 export function KaraokePage() {
+  const { toast } = useToast();
   const { project, assetUrls, uploadFile, createJob, downloadAsset } =
     useProject();
   const [busy, setBusy] = useState(false);
@@ -67,19 +69,28 @@ export function KaraokePage() {
       const asset = await uploadFile(file, file.name, "ORIGINAL_VIDEO");
       setVideoId(asset.id);
       setMessage("Video subido correctamente.");
+      toast.success("Video subido correctamente.");
     } catch (error) {
-      setMessage((error as Error).message);
+      const err = (error as Error).message;
+      setMessage(err);
+      toast.error(err);
     }
   }
 
   async function generate() {
-    if (!video) return setMessage("Selecciona primero un video con musica.");
+    if (!video) {
+      toast.error("Selecciona primero un video con musica.");
+      return setMessage("Selecciona primero un video con musica.");
+    }
     setBusy(true);
     try {
       await createJob("GENERATE_KARAOKE", { videoAssetId: video.id });
       setMessage("Generacion de karaoke iniciada.");
+      toast.success("Generación de pista karaoke iniciada.");
     } catch (error) {
-      setMessage((error as Error).message);
+      const err = (error as Error).message;
+      setMessage(err);
+      toast.error(err);
     } finally {
       setBusy(false);
     }
@@ -92,13 +103,20 @@ export function KaraokePage() {
   ) {
     const extension = recording.type.includes("mp4") ? "mp4" : "webm";
     const fileName = `${sanitizeFileName(name)}.${extension}`;
-    await uploadFile(
-      recording,
-      fileName,
-      "KARAOKE_PERFORMANCE_VIDEO",
-      durationSeconds,
-    );
-    setMessage(`Interpretacion "${name}" guardada correctamente.`);
+    try {
+      await uploadFile(
+        recording,
+        fileName,
+        "KARAOKE_PERFORMANCE_VIDEO",
+        durationSeconds,
+      );
+      setMessage(`Interpretacion "${name}" guardada correctamente.`);
+      toast.success(`Interpretación "${name}" guardada exitosamente.`);
+    } catch (error) {
+      const err = (error as Error).message;
+      setMessage(err);
+      toast.error(err);
+    }
   }
 
   const stage = karaokeStage(karaokeJob?.result?.stage);
@@ -136,55 +154,67 @@ export function KaraokePage() {
           />
         </header>
 
-        <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-end">
-          <VideoPicker
-            assets={videos}
-            value={videoId}
-            selected={video}
-            disabled={busy || processing}
-            onChange={setVideoId}
-          />
-
-          <div>
-            <Button
-              onClick={generate}
-              disabled={busy || processing || !video}
-              className="min-h-14 w-full justify-between bg-emerald-600 px-5 text-base text-white shadow-lg shadow-emerald-600/15 hover:bg-emerald-700 dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400"
-            >
-              <span className="flex items-center gap-3">
-                <Sparkles size={20} />
-                {processing ? "Generando karaoke..." : "Crear karaoke"}
-              </span>
-              <ArrowRight size={21} />
-            </Button>
-            <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-              Se generara una version instrumental con la letra sincronizada en
-              pantalla.
-            </p>
+        {videos.length === 0 ? (
+          <div className="p-5 sm:p-6">
+            <FileUpload
+              mode="dropzone"
+              accept={VIDEO_FILE_ACCEPT}
+              label="Arrastra tu video musical aquí (MP4, MKV o WebM) o haz clic para subirlo"
+              busy={busy || processing}
+              onSelect={upload}
+            />
           </div>
+        ) : (
+          <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-end">
+            <VideoPicker
+              assets={videos}
+              value={videoId}
+              selected={video}
+              disabled={busy || processing}
+              onChange={setVideoId}
+            />
 
-          {processing && karaokeJob && (
-            <div
-              className="lg:col-span-2 rounded-md border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/[0.06]"
-              aria-live="polite"
-            >
-              <div className="mb-2 flex justify-between gap-4 text-sm">
-                <span className="font-medium text-emerald-900 dark:text-emerald-200">
-                  {stage}
+            <div>
+              <Button
+                onClick={generate}
+                disabled={busy || processing || !video}
+                className="min-h-14 w-full justify-between bg-emerald-600 px-5 text-base text-white shadow-lg shadow-emerald-600/15 hover:bg-emerald-700 dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400"
+              >
+                <span className="flex items-center gap-3">
+                  <Sparkles size={20} />
+                  {processing ? "Generando karaoke..." : "Crear karaoke"}
                 </span>
-                <span className="tabular-nums text-emerald-700 dark:text-emerald-300">
-                  {karaokeJob.progress}%
-                </span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-emerald-200 dark:bg-emerald-950">
-                <div
-                  className="h-full rounded-full bg-emerald-600 transition-[width] duration-300 dark:bg-emerald-400"
-                  style={{ width: `${karaokeJob.progress}%` }}
-                />
-              </div>
+                <ArrowRight size={21} />
+              </Button>
+              <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+                Se generara una version instrumental con la letra sincronizada en
+                pantalla.
+              </p>
             </div>
-          )}
-        </div>
+
+            {processing && karaokeJob && (
+              <div
+                className="lg:col-span-2 rounded-md border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/[0.06]"
+                aria-live="polite"
+              >
+                <div className="mb-2 flex justify-between gap-4 text-sm">
+                  <span className="font-medium text-emerald-900 dark:text-emerald-200">
+                    {stage}
+                  </span>
+                  <span className="tabular-nums text-emerald-700 dark:text-emerald-300">
+                    {karaokeJob.progress}%
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-emerald-200 dark:bg-emerald-950">
+                  <div
+                    className="h-full rounded-full bg-emerald-600 transition-[width] duration-300 dark:bg-emerald-400"
+                    style={{ width: `${karaokeJob.progress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       <Notice
