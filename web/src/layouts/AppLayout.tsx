@@ -2,6 +2,7 @@ import {
   Files,
   FolderOpen,
   Gauge,
+  HelpCircle,
   Home,
   Menu,
   Mic2,
@@ -28,6 +29,7 @@ const routeMeta: Array<{ match: RegExp; title: string; icon: LucideIcon }> = [
   { match: /\/projects\/[^/]+$/, title: "Resumen", icon: Gauge },
   { match: /\/projects$/, title: "Proyectos", icon: FolderOpen },
   { match: /\/profile$/, title: "Mi perfil", icon: User },
+  { match: /\/help$/, title: "Ayuda", icon: HelpCircle },
   { match: /\/dashboard$/, title: "Inicio", icon: Home },
 ];
 

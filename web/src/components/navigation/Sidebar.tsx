@@ -2,6 +2,7 @@ import {
   ChevronUp,
   Film,
   FolderOpen,
+  HelpCircle,
   Home,
   Images,
   LogOut,
@@ -161,6 +162,12 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           to="/profile"
           label="Mi perfil"
           icon={User}
+          onNavigate={onNavigate}
+        />
+        <NavItem
+          to="/help"
+          label="Ayuda"
+          icon={HelpCircle}
           onNavigate={onNavigate}
         />
       </nav>

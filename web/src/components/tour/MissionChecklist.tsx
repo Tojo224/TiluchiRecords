@@ -1,5 +1,6 @@
 import { CheckCircle2, Circle, Compass } from "lucide-react";
 import { useId, useState, type KeyboardEvent } from "react";
+import { Link } from "react-router-dom";
 import { cn } from "../../shared/lib/format";
 import { missionProgress } from "../../tour/missions";
 import { useTour } from "../../tour/useTour";
@@ -119,7 +120,14 @@ export function MissionChecklist() {
               </li>
             ))}
           </ul>
-          <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <Link
+              to="/help"
+              onClick={() => setOpen(false)}
+              className="text-xs font-medium text-emerald-800 underline-offset-2 hover:underline dark:text-emerald-300"
+            >
+              Ver manual de ayuda
+            </Link>
             <Button variant="ghost" className="text-xs" onClick={dismiss}>
               Ocultar guia
             </Button>

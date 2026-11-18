@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MISSIONS } from "@/tour/missions";
 import { EMPTY_TOUR_SNAPSHOT } from "@/tour/snapshot";
@@ -36,7 +37,11 @@ function makeValue(
 }
 
 function withTour(value: TourContextValue, children: React.ReactNode) {
-  return <TourContext.Provider value={value}>{children}</TourContext.Provider>;
+  return (
+    <MemoryRouter>
+      <TourContext.Provider value={value}>{children}</TourContext.Provider>
+    </MemoryRouter>
+  );
 }
 
 afterEach(() => vi.useRealTimers());
@@ -56,6 +61,14 @@ describe("MissionChecklist", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(MISSIONS.length);
     fireEvent.keyDown(toggle, { key: "Escape" });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("links to the help manual from the open panel", () => {
+    render(withTour(makeValue(), <MissionChecklist />));
+    fireEvent.click(screen.getByRole("button", { name: /^Guia/ }));
+    expect(
+      screen.getByRole("link", { name: "Ver manual de ayuda" }),
+    ).toHaveAttribute("href", "/help");
   });
 
   it("starts a mission, closes the panel and can hide the guide", () => {
