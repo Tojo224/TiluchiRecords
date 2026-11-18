@@ -43,6 +43,7 @@ Chain strategy (user decision): PRs target `refactor/web-adjustments` (the lates
 - [x] T3 Tour runner + UI: TourProvider, TourProjectBridge, welcome, MissionChecklist, micro-tours, exit/Esc, reduced-motion, dark theme styling
 - [x] T4 `/help` page: typed content per flow, route in App.tsx, link inside existing Sidebar nav, "Repetir tutorial"
 - [ ] T5 (optional) Playwright e2e of the tour path
+- [x] T6 Fixes from the post-implementation verification (user authorized): (1) TourProvider falls back to a stale project list: remember the last seen projectId; (2) silent tour failure when the first anchor is missing (e.g. "Cantar" needs a ready karaoke): show a notice and wait longer on project routes; (3) steps.ts says the visual direction "es opcional" but the plan button is blocked without it; (4) "Salir de la guia" loses its link style (CSS specificity, light and dark) and the dark close button is nearly invisible on hover
 
 ## Route declaration
 Each task: delegated direct (one bounded writer, sequential). Trigger: writer trigger (2+ non-trivial files).
@@ -65,7 +66,10 @@ T1-T4 and follow-ups done, verified and reviewed; all pushed to `feat/web-help-t
 - T4: da49d29 feat(web): add help page with per-flow manual and sidebar link (11 files, +591/-2: help-content (7 sections), HelpPage (index as `<ul>` in a labelled section, native `<details>` troubleshooting, "Repetir tutorial", "Empezar tutorial interactivo"), route `help` inside AppLayout, "Ayuda" NavItem inside the existing `<nav>`, "Ver manual de ayuda" link in MissionChecklist, README section "Ayuda y tutorial"). Content fix before commit: help claimed processes advance without the page open, but Video desde musica chains storyboard and compose from page effects (MusicVideoPage.tsx:91-132); text corrected. Checks: build OK; lint 0 errors/6 warnings; unit tests 150 passed (parent re-run 150).
 - T4 slice review: assessed medium (follow-ups + T4, 878 lines); consent granted by the user; native review approved with 1 SUGGESTION (this log was stale, fixed here), authority burned (lineage review-74b8735dd4e1f501). Reviewed boundary advances to da49d29.
 
+- T6: 69bd5f4 fix(web): address tour verification findings (8 files, +258/-53). (1) TourProvider remembers the last project id reported by the bridge (cleared on user change) and falls back route -> last seen -> list; when none is known it refreshes the list once (`useProjects.refresh` now returns the fetched list); (2) `runMicroTour` gets `onUnavailable`, the provider shows a generic notice plus a per-mission hint (`MISSION_UNAVAILABLE_HINTS`, e.g. sing-karaoke) and waits 5 s on project routes; (3) musicPrompt step copy now says the visual direction is mandatory; (4) exit button rules use `button.tiluchi-tour-exit` so the link style wins in light and dark, plus dark overrides for the close button. Checks: build OK; lint 0 errors/6 warnings; unit tests 162 passed (parent re-run 162). Assessed medium, 329 lines, under_budget: no review due. CSS needs a manual visual check (jsdom cannot test it).
+
 ## Follow-ups (advisory, non-blocking, from the reviews)
+- Open doubts from the verification, NOT fixed (user will test manually): Esc during an open modal closes the tour first; floating "Guia" button on mobile may cover bottom CTAs; focus falls to body when starting a mission from the checklist; driver.js + CSS are in the main bundle (could be dynamic import); dead anchor `projectFlows` and unused `imageCount`.
 - All review follow-ups from T1, T2 and T3 were addressed in 44322da; the T4 suggestion is addressed by this update.
 - Open (low priority): MusicVideoPage has a similar inline tone expression not extracted to the `notice-tone` helper.
 - Open: help claims "el proceso en curso termina aunque salgas de la pagina" assume jobs run on the AI worker independently of the browser (README: worker processes Redis jobs in the background); not re-verified in backend code.
@@ -73,4 +77,4 @@ T1-T4 and follow-ups done, verified and reviewed; all pushed to `feat/web-help-t
 - Note: `web/tutorial-adaptativo.md` (reference) and `.atl/` stay untracked on purpose.
 
 ## Next step
-Delivery: user opens PRs to `refactor/web-adjustments`. Optionally T5.
+User manual testing (light/dark tour popover, mobile, Esc with modals). Then delivery: user opens PRs to `refactor/web-adjustments` (T6 rides with the T3/T4 slice or its own). Optionally T5.
