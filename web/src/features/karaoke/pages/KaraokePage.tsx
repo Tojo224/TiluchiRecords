@@ -6,6 +6,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useToast } from "../../../components/ui/Toast";
 import { Button } from "../../../components/ui/Button";
 import { DisabledReason } from "../../../components/ui/DisabledReason";
 import { Notice } from "../../../components/ui/Notice";
@@ -26,6 +27,7 @@ import { KaraokeSingingModal } from "../components/KaraokeSingingModal";
 import { getKaraokeBlockers } from "../lib/karaoke-state";
 
 export function KaraokePage() {
+  const { toast } = useToast();
   const { project, assetUrls, uploadFile, createJob, downloadAsset } =
     useProject();
   const [busy, setBusy] = useState(false);
@@ -76,6 +78,8 @@ export function KaraokePage() {
   function showMessage(text: string, tone: MessageTone = "success") {
     setMessage(text);
     setMessageTone(tone);
+    if (tone === "success") toast.success(text);
+    else toast.error(text);
   }
 
   async function upload(file: File) {
@@ -157,64 +161,76 @@ export function KaraokePage() {
           />
         </header>
 
-        <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-end">
-          <VideoPicker
-            assets={videos}
-            value={videoId}
-            selected={video}
-            disabled={busy || processing}
-            onChange={setVideoId}
-          />
-
-          <div>
-            <Button
-              onClick={generate}
-              {...tourAnchor(TOUR_ANCHORS.karaokeCreate)}
-              disabled={blockers.length > 0}
-              aria-describedby={
-                blockers.length ? "karaoke-blockers" : undefined
-              }
-              className="min-h-14 w-full justify-between bg-emerald-600 px-5 text-base text-white shadow-lg shadow-emerald-600/15 hover:bg-emerald-700 dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400"
-            >
-              <span className="flex items-center gap-3">
-                <Sparkles size={20} />
-                {processing ? "Generando karaoke..." : "Crear karaoke"}
-              </span>
-              <ArrowRight size={21} />
-            </Button>
-            <DisabledReason
-              id="karaoke-blockers"
-              reasons={blockers}
-              className="mt-3"
+        {videos.length === 0 ? (
+          <div className="p-5 sm:p-6">
+            <FileUpload
+              mode="dropzone"
+              accept={VIDEO_FILE_ACCEPT}
+              label="Arrastra tu video musical aqui (MP4, MKV o WebM) o haz clic para subirlo"
+              busy={busy || processing}
+              onSelect={upload}
             />
-            <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-              Se generara una version instrumental con la letra sincronizada en
-              pantalla.
-            </p>
           </div>
+        ) : (
+          <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-end">
+            <VideoPicker
+              assets={videos}
+              value={videoId}
+              selected={video}
+              disabled={busy || processing}
+              onChange={setVideoId}
+            />
 
-          {processing && karaokeJob && (
-            <div
-              className="lg:col-span-2 rounded-md border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/[0.06]"
-              aria-live="polite"
-            >
-              <div className="mb-2 flex justify-between gap-4 text-sm">
-                <span className="font-medium text-emerald-900 dark:text-emerald-200">
-                  {stage}
+            <div>
+              <Button
+                onClick={generate}
+                {...tourAnchor(TOUR_ANCHORS.karaokeCreate)}
+                disabled={blockers.length > 0}
+                aria-describedby={
+                  blockers.length ? "karaoke-blockers" : undefined
+                }
+                className="min-h-14 w-full justify-between bg-emerald-600 px-5 text-base text-white shadow-lg shadow-emerald-600/15 hover:bg-emerald-700 dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400"
+              >
+                <span className="flex items-center gap-3">
+                  <Sparkles size={20} />
+                  {processing ? "Generando karaoke..." : "Crear karaoke"}
                 </span>
-                <span className="tabular-nums text-emerald-700 dark:text-emerald-300">
-                  {karaokeJob.progress}%
-                </span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-emerald-200 dark:bg-emerald-950">
-                <div
-                  className="h-full rounded-full bg-emerald-600 transition-[width] duration-300 dark:bg-emerald-400"
-                  style={{ width: `${karaokeJob.progress}%` }}
-                />
-              </div>
+                <ArrowRight size={21} />
+              </Button>
+              <DisabledReason
+                id="karaoke-blockers"
+                reasons={blockers}
+                className="mt-3"
+              />
+              <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+                Se generara una version instrumental con la letra sincronizada
+                en pantalla.
+              </p>
             </div>
-          )}
-        </div>
+
+            {processing && karaokeJob && (
+              <div
+                className="lg:col-span-2 rounded-md border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/[0.06]"
+                aria-live="polite"
+              >
+                <div className="mb-2 flex justify-between gap-4 text-sm">
+                  <span className="font-medium text-emerald-900 dark:text-emerald-200">
+                    {stage}
+                  </span>
+                  <span className="tabular-nums text-emerald-700 dark:text-emerald-300">
+                    {karaokeJob.progress}%
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-emerald-200 dark:bg-emerald-950">
+                  <div
+                    className="h-full rounded-full bg-emerald-600 transition-[width] duration-300 dark:bg-emerald-400"
+                    style={{ width: `${karaokeJob.progress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       <Notice
