@@ -17,6 +17,7 @@ import type {
 } from "../../../shared/types/domain";
 import { useJobPolling } from "../../jobs/hooks/useJobPolling";
 import { resolveMediaMimeType } from "../../../shared/media/asset-files";
+import { TourProjectBridge } from "../../../tour/TourProjectBridge";
 
 type ProjectContextValue = {
   project: Project;
@@ -209,6 +210,7 @@ export function ProjectProviderLayout() {
     );
   return (
     <ProjectContext.Provider value={value}>
+      <TourProjectBridge />
       <Outlet />
     </ProjectContext.Provider>
   );
