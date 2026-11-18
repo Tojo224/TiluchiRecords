@@ -8,6 +8,7 @@ import { ResetPasswordPage } from "../features/auth/pages/ResetPasswordPage";
 import { LandingPage } from "../features/landing/pages/LandingPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { FaceSwapPage } from "../features/face-swap/pages/FaceSwapPage";
+import { HelpPage } from "../features/help/pages/HelpPage";
 import { KaraokePage } from "../features/karaoke/pages/KaraokePage";
 import { FilesPage } from "../features/media/pages/FilesPage";
 import { ResultsPage } from "../features/media/pages/ResultsPage";
@@ -30,6 +31,7 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="help" element={<HelpPage />} />
           <Route path="security" element={<Navigate to="/profile" replace />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route

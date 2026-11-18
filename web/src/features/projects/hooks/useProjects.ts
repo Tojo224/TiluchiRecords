@@ -7,11 +7,13 @@ export function useProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (): Promise<Project[] | undefined> => {
     setLoading(true);
     try {
-      setProjects(await api<Project[]>("/projects"));
+      const list = await api<Project[]>("/projects");
+      setProjects(list);
       setError("");
+      return list;
     } catch (error) {
       setError((error as Error).message);
     } finally {

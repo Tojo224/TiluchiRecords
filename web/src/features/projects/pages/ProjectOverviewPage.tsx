@@ -17,6 +17,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../app/providers/AuthProvider";
 import { Button } from "../../../components/ui/Button";
 import { Notice } from "../../../components/ui/Notice";
+import type { MessageTone } from "../../../shared/lib/notice-tone";
+import { TOUR_ANCHORS, tourAnchor } from "../../../tour/anchors";
 import { FileUpload } from "../../media/components/FileUpload";
 import { useProject } from "../context/ProjectContext";
 import {
@@ -69,6 +71,7 @@ export function ProjectOverviewPage() {
   const { api } = useAuth();
   const navigate = useNavigate();
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState<MessageTone>("success");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [savingCover, setSavingCover] = useState(false);
@@ -87,6 +90,11 @@ export function ProjectOverviewPage() {
     (asset) => asset.origin === "GENERATED",
   ).length;
 
+  function showMessage(text: string, tone: MessageTone = "success") {
+    setMessage(text);
+    setMessageTone(tone);
+  }
+
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -101,9 +109,9 @@ export function ProjectOverviewPage() {
         }),
       });
       await refresh();
-      setMessage("Proyecto actualizado correctamente.");
+      showMessage("Proyecto actualizado correctamente.");
     } catch (error) {
-      setMessage((error as Error).message);
+      showMessage((error as Error).message, "error");
     } finally {
       setSaving(false);
     }
@@ -118,7 +126,7 @@ export function ProjectOverviewPage() {
       await api(`/projects/${project.id}`, { method: "DELETE" });
       navigate("/projects");
     } catch (error) {
-      setMessage((error as Error).message);
+      showMessage((error as Error).message, "error");
       setDeleting(false);
     }
   }
@@ -134,9 +142,9 @@ export function ProjectOverviewPage() {
         await deleteAsset(previousCoverId).catch(() => undefined);
       }
       await refresh();
-      setMessage("Portada actualizada correctamente.");
+      showMessage("Portada actualizada correctamente.");
     } catch (error) {
-      setMessage((error as Error).message);
+      showMessage((error as Error).message, "error");
     } finally {
       setSavingCover(false);
     }
@@ -161,14 +169,12 @@ export function ProjectOverviewPage() {
         </Link>
       </header>
 
-      <Notice
-        message={message}
-        tone={message.includes("correctamente") ? "success" : "error"}
-      />
+      <Notice message={message} tone={messageTone} />
 
       <section
         className="grid gap-4 md:grid-cols-3"
         aria-label="Flujos creativos"
+        {...tourAnchor(TOUR_ANCHORS.projectFlows)}
       >
         {flows.map(({ slug, title, text, icon: Icon, surface, iconStyle }) => (
           <Link

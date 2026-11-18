@@ -8,15 +8,23 @@ import {
 import { useMemo, useState } from "react";
 import { useToast } from "../../../components/ui/Toast";
 import { Button } from "../../../components/ui/Button";
+import { DisabledReason } from "../../../components/ui/DisabledReason";
 import { Notice } from "../../../components/ui/Notice";
 import { FileUpload } from "../../media/components/FileUpload";
 import { MediaPlayer } from "../../media/components/MediaPlayer";
 import { useSelectedAsset } from "../../media/hooks/useSelectedAsset";
-import { formatBytes } from "../../../shared/lib/format";
+import { useJobForType } from "../../jobs/hooks/useJobForType";
+import { formatBytes, formatDuration } from "../../../shared/lib/format";
+import {
+  resolveNoticeTone,
+  type MessageTone,
+} from "../../../shared/lib/notice-tone";
 import { VIDEO_FILE_ACCEPT } from "../../../shared/media/asset-files";
 import type { MediaAsset } from "../../../shared/types/domain";
+import { TOUR_ANCHORS, tourAnchor } from "../../../tour/anchors";
 import { useProject } from "../../projects/context/ProjectContext";
 import { KaraokeSingingModal } from "../components/KaraokeSingingModal";
+import { getKaraokeBlockers } from "../lib/karaoke-state";
 
 export function KaraokePage() {
   const { toast } = useToast();
@@ -24,6 +32,7 @@ export function KaraokePage() {
     useProject();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState<MessageTone>("success");
   const [singingOpen, setSingingOpen] = useState(false);
   const videos = useMemo(
     () =>
@@ -40,18 +49,20 @@ export function KaraokePage() {
     selectedId: videoId,
     setSelectedId: setVideoId,
   } = useSelectedAsset(videos);
-  const karaokeJob = (project.jobs || []).find(
-    (job) =>
-      job.type === "GENERATE_KARAOKE" && job.payload?.videoAssetId === videoId,
+  const {
+    job: karaokeJob,
+    running: processing,
+    failed,
+  } = useJobForType(
+    project.jobs,
+    "GENERATE_KARAOKE",
+    (job) => job.payload?.videoAssetId === videoId,
   );
   const karaokeVideo = (project.mediaAssets || []).find(
     (asset) =>
       asset.kind === "KARAOKE_VIDEO" &&
       asset.status === "READY" &&
       asset.metadata?.sourceJobId === karaokeJob?.id,
-  );
-  const processing = ["PENDING", "PROCESSING"].includes(
-    karaokeJob?.status || "",
   );
   const latestPerformance = (project.mediaAssets || [])
     .filter(
@@ -64,33 +75,32 @@ export function KaraokePage() {
         new Date(left.createdAt).getTime(),
     )[0];
 
+  function showMessage(text: string, tone: MessageTone = "success") {
+    setMessage(text);
+    setMessageTone(tone);
+    if (tone === "success") toast.success(text);
+    else toast.error(text);
+  }
+
   async function upload(file: File) {
     try {
       const asset = await uploadFile(file, file.name, "ORIGINAL_VIDEO");
       setVideoId(asset.id);
-      setMessage("Video subido correctamente.");
-      toast.success("Video subido correctamente.");
+      showMessage("Video subido correctamente.");
     } catch (error) {
-      const err = (error as Error).message;
-      setMessage(err);
-      toast.error(err);
+      showMessage((error as Error).message, "error");
     }
   }
 
   async function generate() {
-    if (!video) {
-      toast.error("Selecciona primero un video con musica.");
-      return setMessage("Selecciona primero un video con musica.");
-    }
+    if (!video)
+      return showMessage("Selecciona primero un video con musica.", "error");
     setBusy(true);
     try {
       await createJob("GENERATE_KARAOKE", { videoAssetId: video.id });
-      setMessage("Generacion de karaoke iniciada.");
-      toast.success("Generación de pista karaoke iniciada.");
+      showMessage("Generacion de karaoke iniciada.");
     } catch (error) {
-      const err = (error as Error).message;
-      setMessage(err);
-      toast.error(err);
+      showMessage((error as Error).message, "error");
     } finally {
       setBusy(false);
     }
@@ -103,26 +113,22 @@ export function KaraokePage() {
   ) {
     const extension = recording.type.includes("mp4") ? "mp4" : "webm";
     const fileName = `${sanitizeFileName(name)}.${extension}`;
-    try {
-      await uploadFile(
-        recording,
-        fileName,
-        "KARAOKE_PERFORMANCE_VIDEO",
-        durationSeconds,
-      );
-      setMessage(`Interpretacion "${name}" guardada correctamente.`);
-      toast.success(`Interpretación "${name}" guardada exitosamente.`);
-    } catch (error) {
-      const err = (error as Error).message;
-      setMessage(err);
-      toast.error(err);
-    }
+    await uploadFile(
+      recording,
+      fileName,
+      "KARAOKE_PERFORMANCE_VIDEO",
+      durationSeconds,
+    );
+    showMessage(`Interpretacion "${name}" guardada correctamente.`);
   }
 
+  const blockers = getKaraokeBlockers({
+    hasVideo: Boolean(video),
+    busy: busy || processing,
+  });
   const stage = karaokeStage(karaokeJob?.result?.stage);
-  const failed = karaokeJob?.status === "FAILED";
   const statusMessage = failed
-    ? friendlyKaraokeError(karaokeJob.errorMessage)
+    ? friendlyKaraokeError(karaokeJob?.errorMessage)
     : message;
 
   return (
@@ -149,6 +155,7 @@ export function KaraokePage() {
           <FileUpload
             accept={VIDEO_FILE_ACCEPT}
             label="Subir video"
+            anchor={TOUR_ANCHORS.karaokeUpload}
             busy={busy || processing}
             onSelect={upload}
           />
@@ -159,7 +166,7 @@ export function KaraokePage() {
             <FileUpload
               mode="dropzone"
               accept={VIDEO_FILE_ACCEPT}
-              label="Arrastra tu video musical aquí (MP4, MKV o WebM) o haz clic para subirlo"
+              label="Arrastra tu video musical aqui (MP4, MKV o WebM) o haz clic para subirlo"
               busy={busy || processing}
               onSelect={upload}
             />
@@ -177,7 +184,11 @@ export function KaraokePage() {
             <div>
               <Button
                 onClick={generate}
-                disabled={busy || processing || !video}
+                {...tourAnchor(TOUR_ANCHORS.karaokeCreate)}
+                disabled={blockers.length > 0}
+                aria-describedby={
+                  blockers.length ? "karaoke-blockers" : undefined
+                }
                 className="min-h-14 w-full justify-between bg-emerald-600 px-5 text-base text-white shadow-lg shadow-emerald-600/15 hover:bg-emerald-700 dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400"
               >
                 <span className="flex items-center gap-3">
@@ -186,9 +197,14 @@ export function KaraokePage() {
                 </span>
                 <ArrowRight size={21} />
               </Button>
+              <DisabledReason
+                id="karaoke-blockers"
+                reasons={blockers}
+                className="mt-3"
+              />
               <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-                Se generara una version instrumental con la letra sincronizada en
-                pantalla.
+                Se generara una version instrumental con la letra sincronizada
+                en pantalla.
               </p>
             </div>
 
@@ -219,11 +235,11 @@ export function KaraokePage() {
 
       <Notice
         message={statusMessage}
-        tone={
-          failed || (!message.includes("correctamente") && !processing)
-            ? "error"
-            : "success"
-        }
+        tone={resolveNoticeTone(messageTone, {
+          failed,
+          active: processing,
+          activeTone: "success",
+        })}
       />
 
       <section className="grid gap-5 xl:grid-cols-2">
@@ -242,6 +258,7 @@ export function KaraokePage() {
             karaokeVideo && assetUrls[karaokeVideo.id]
               ? {
                   label: "Cantar",
+                  anchor: TOUR_ANCHORS.karaokeSing,
                   onClick: () => setSingingOpen(true),
                 }
               : undefined
@@ -350,11 +367,6 @@ function videoFormat(asset: MediaAsset) {
   return [extension || "VIDEO", duration ? formatDuration(duration) : null]
     .filter(Boolean)
     .join(" · ");
-}
-
-function formatDuration(seconds: number) {
-  const total = Math.max(0, Math.round(seconds));
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
 }
 
 function karaokeStage(stage?: string) {

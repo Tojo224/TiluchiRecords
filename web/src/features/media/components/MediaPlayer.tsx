@@ -14,9 +14,10 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../../../components/ui/Button";
-import { formatBytes } from "../../../shared/lib/format";
+import { formatBytes, formatDuration } from "../../../shared/lib/format";
 import { makeRecordingSeekable } from "../../../shared/media/seekable-recording";
 import type { MediaAsset } from "../../../shared/types/domain";
+import { tourAnchor, type TourAnchorName } from "../../../tour/anchors";
 
 export function MediaPlayer({
   title,
@@ -34,6 +35,8 @@ export function MediaPlayer({
     label: string;
     onClick: () => void;
     disabled?: boolean;
+    /** Optional guided-tour anchor applied to the action button. */
+    anchor?: TourAnchorName;
   };
   compact?: boolean;
 }) {
@@ -301,7 +304,11 @@ export function MediaPlayer({
           />
           <div className="flex items-center gap-2">
             {action && (
-              <Button onClick={action.onClick} disabled={action.disabled}>
+              <Button
+                onClick={action.onClick}
+                disabled={action.disabled}
+                {...(action.anchor ? tourAnchor(action.anchor) : {})}
+              >
                 <Mic2 size={17} />
                 {action.label}
               </Button>
@@ -481,10 +488,4 @@ function AssetInformation({
       </div>
     </div>
   );
-}
-
-function formatDuration(seconds: number) {
-  const total = Math.max(0, Math.round(seconds));
-  const minutes = Math.floor(total / 60);
-  return `${minutes}:${String(total % 60).padStart(2, "0")}`;
 }

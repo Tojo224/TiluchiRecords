@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
@@ -58,20 +59,27 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [dismiss],
   );
 
-  const toastMethods = {
-    success: (message: string, title?: string) =>
-      addToast({ type: "success", message, title }),
-    error: (message: string, title?: string) =>
-      addToast({ type: "error", message, title, durationMs: 6000 }),
-    info: (message: string, title?: string) =>
-      addToast({ type: "info", message, title }),
-    warning: (message: string, title?: string) =>
-      addToast({ type: "warning", message, title, durationMs: 5000 }),
-    custom: addToast,
-  };
+  const toastMethods = useMemo(
+    () => ({
+      success: (message: string, title?: string) =>
+        addToast({ type: "success", message, title }),
+      error: (message: string, title?: string) =>
+        addToast({ type: "error", message, title, durationMs: 6000 }),
+      info: (message: string, title?: string) =>
+        addToast({ type: "info", message, title }),
+      warning: (message: string, title?: string) =>
+        addToast({ type: "warning", message, title, durationMs: 5000 }),
+      custom: addToast,
+    }),
+    [addToast],
+  );
+  const contextValue = useMemo(
+    () => ({ toast: toastMethods, dismiss }),
+    [toastMethods, dismiss],
+  );
 
   return (
-    <ToastContext.Provider value={{ toast: toastMethods, dismiss }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       {/* Toast Viewport */}
       <div
@@ -104,16 +112,25 @@ function ToastCard({
   const [leaving, setLeaving] = useState(false);
 
   const icons = {
-    success: <CheckCircle2 className="size-5 shrink-0 text-emerald-500 dark:text-emerald-400" />,
-    error: <AlertCircle className="size-5 shrink-0 text-rose-500 dark:text-rose-400" />,
-    warning: <AlertTriangle className="size-5 shrink-0 text-amber-500 dark:text-amber-400" />,
+    success: (
+      <CheckCircle2 className="size-5 shrink-0 text-emerald-500 dark:text-emerald-400" />
+    ),
+    error: (
+      <AlertCircle className="size-5 shrink-0 text-rose-500 dark:text-rose-400" />
+    ),
+    warning: (
+      <AlertTriangle className="size-5 shrink-0 text-amber-500 dark:text-amber-400" />
+    ),
     info: <Info className="size-5 shrink-0 text-sky-500 dark:text-sky-400" />,
   };
 
   const borders = {
-    success: "border-emerald-500/20 bg-emerald-50/95 dark:border-emerald-500/20 dark:bg-[#071d18]/95",
-    error: "border-rose-500/20 bg-rose-50/95 dark:border-rose-500/20 dark:bg-[#200b0e]/95",
-    warning: "border-amber-500/20 bg-amber-50/95 dark:border-amber-500/20 dark:bg-[#201705]/95",
+    success:
+      "border-emerald-500/20 bg-emerald-50/95 dark:border-emerald-500/20 dark:bg-[#071d18]/95",
+    error:
+      "border-rose-500/20 bg-rose-50/95 dark:border-rose-500/20 dark:bg-[#200b0e]/95",
+    warning:
+      "border-amber-500/20 bg-amber-50/95 dark:border-amber-500/20 dark:bg-[#201705]/95",
     info: "border-sky-500/20 bg-sky-50/95 dark:border-sky-500/20 dark:bg-[#081a28]/95",
   };
 

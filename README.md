@@ -75,6 +75,18 @@ python -m src.worker
 
 ---
 
+## Ayuda y tutorial
+
+La web incluye ayuda para usuarios nuevos:
+
+* **Tutorial guiado:** al entrar, el boton **Guia** (abajo a la derecha) lista misiones (crear proyecto, subir video, crear karaoke, etc.). Detecta lo que ya hiciste y marca en pantalla donde pulsar.
+* **Manual en `/help`:** pagina "Ayuda" del menu, con una guia por flujo (Karaoke, Video desde musica, Face swap, Archivos y Resultados) y los problemas frecuentes.
+* **Avisos "Falta: ...":** los botones desactivados explican debajo que requisito falta.
+* **Progreso:** se guarda en el `localStorage` del navegador con la clave `tiluchi_tour_v1:<userId>`.
+* **Reiniciar:** usa **Repetir tutorial** en `/help`, o borra esa clave desde las herramientas del navegador.
+
+---
+
 ## 4. Decisiones de Arquitectura Clave (R-1)
 
 * **D-01 (Monorepo):** `/web`, `/backend` y `/ai` bajo un único control de versiones y compose.

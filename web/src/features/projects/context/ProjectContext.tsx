@@ -18,6 +18,7 @@ import type {
   Project,
 } from "../../../shared/types/domain";
 import { resolveMediaMimeType } from "../../../shared/media/asset-files";
+import { TourProjectBridge } from "../../../tour/TourProjectBridge";
 
 export type UploadProgressCallback = (
   percent: number,
@@ -29,6 +30,8 @@ type ProjectContextValue = {
   project: Project;
   assetUrls: Record<string, string>;
   refresh: () => Promise<void>;
+  /** Requests fast polling; returns a function that releases the request. */
+  retainFastPolling: () => () => void;
   createJob: (type: JobType, payload: Record<string, unknown>) => Promise<Job>;
   uploadFile: (
     file: File | Blob,
@@ -43,6 +46,15 @@ type ProjectContextValue = {
 
 const ProjectContext = createContext<ProjectContextValue | null>(null);
 
+function isNotFoundError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    (error as { status?: unknown }).status === 404
+  );
+}
+
 export function ProjectProviderLayout() {
   const { projectId } = useParams();
   const { api } = useAuth();
@@ -51,7 +63,13 @@ export function ProjectProviderLayout() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [assetUrls, setAssetUrls] = useState<Record<string, string>>({});
-  
+
+  // Keep the latest toast API in a ref so `refresh` stays referentially stable
+  const toastRef = useRef(toast);
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
+
   // Track previous jobs to trigger toast notifications on completion
   const previousJobsRef = useRef<Map<string, string>>(new Map());
 
@@ -59,19 +77,22 @@ export function ProjectProviderLayout() {
     if (!projectId) return;
     try {
       const data = await api<Project>(`/projects/${projectId}`);
-      
-      // Check for completed or failed jobs to notify user
+
+      // Notify the user about jobs that changed status since the last poll
       if (data.jobs && previousJobsRef.current.size > 0) {
         data.jobs.forEach((job) => {
           const prevStatus = previousJobsRef.current.get(job.id);
           if (prevStatus && prevStatus !== job.status) {
             if (job.status === "COMPLETED") {
               const friendlyName = formatJobType(job.type);
-              toast.success(`${friendlyName} se completó con éxito.`, "Proceso Finalizado");
+              toastRef.current.success(
+                `${friendlyName} se completo con exito.`,
+                "Proceso finalizado",
+              );
             } else if (job.status === "FAILED") {
               const friendlyName = formatJobType(job.type);
-              toast.error(
-                job.errorMessage || "Ocurrió un error inesperado.",
+              toastRef.current.error(
+                job.errorMessage || "Ocurrio un error inesperado.",
                 `Error en ${friendlyName}`,
               );
             }
@@ -79,7 +100,6 @@ export function ProjectProviderLayout() {
         });
       }
 
-      // Update ref
       if (data.jobs) {
         const nextMap = new Map<string, string>();
         data.jobs.forEach((j) => nextMap.set(j.id, j.status));
@@ -87,61 +107,65 @@ export function ProjectProviderLayout() {
       }
 
       setProject(data);
-    } catch (error: any) {
-      if (error?.status === 404) setNotFound(true);
+    } catch (error: unknown) {
+      if (isNotFoundError(error)) setNotFound(true);
       else throw error;
     } finally {
       setLoading(false);
     }
-  }, [api, projectId, toast]);
+  }, [api, projectId]);
 
   // Initial load
   useEffect(() => {
     refresh().catch(() => setLoading(false));
   }, [refresh]);
+  const [fastPollingRequests, setFastPollingRequests] = useState(0);
+  const retainFastPolling = useCallback(() => {
+    let released = false;
+    setFastPollingRequests((count) => count + 1);
+    return () => {
+      if (released) return;
+      released = true;
+      setFastPollingRequests((count) => count - 1);
+    };
+  }, []);
 
-  // Smart Adaptive Polling
+  // Smart adaptive polling: a single timer whose interval depends on whether
+  // a page retained fast polling, jobs are running, or the project is idle.
+  const hasActiveJobs = useMemo(
+    () =>
+      (project?.jobs || []).some(
+        (job) => job.status === "PENDING" || job.status === "PROCESSING",
+      ),
+    [project?.jobs],
+  );
+  const pollInterval =
+    fastPollingRequests > 0 ? 1000 : hasActiveJobs ? 2500 : 12000;
+
   useEffect(() => {
-    const hasActiveJobs = (project?.jobs || []).some(
-      (job) => job.status === "PENDING" || job.status === "PROCESSING",
-    );
-
-    // Fast polling (2.5s) if jobs are processing, relaxed (12s) if idle
-    const pollInterval = hasActiveJobs ? 2500 : 12000;
-
     let timer: number | null = null;
 
     function schedulePoll() {
-      if (document.hidden) {
-        // Tab in background: delay poll
-        timer = window.setTimeout(() => {
-          refresh().catch(() => undefined);
-          schedulePoll();
-        }, 15000);
-        return;
-      }
-
+      // Tab in background: poll much less often
+      const delay = document.hidden ? 15000 : pollInterval;
       timer = window.setTimeout(() => {
         refresh().catch(() => undefined);
         schedulePoll();
-      }, pollInterval);
+      }, delay);
     }
 
     schedulePoll();
 
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        refresh().catch(() => undefined);
-      }
+      if (!document.hidden) refresh().catch(() => undefined);
     };
-
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       if (timer) window.clearTimeout(timer);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [project?.jobs, refresh]);
+  }, [pollInterval, refresh]);
 
   // Resolve download URLs for ready assets
   useEffect(() => {
@@ -159,100 +183,120 @@ export function ProjectProviderLayout() {
       });
   }, [api, assetUrls, project?.mediaAssets]);
 
-  async function createJob(type: JobType, payload: Record<string, unknown>) {
-    const job = await api<Job>("/jobs", {
-      method: "POST",
-      body: JSON.stringify({ projectId, type, payload }),
-    });
-    toast.info("Tarea enviada al motor de IA en segundo plano...", formatJobType(type));
-    await refresh();
-    return job;
-  }
-
-  async function uploadFile(
-    file: File | Blob,
-    fileName: string,
-    kind: MediaAssetKind,
-    durationSeconds?: number,
-    onProgress?: UploadProgressCallback,
-  ) {
-    const mimeType = resolveMediaMimeType(fileName, file.type);
-    const upload = await api<{ assetId: string; uploadUrl: string }>(
-      "/media/upload-url",
-      {
+  const createJob = useCallback(
+    async (type: JobType, payload: Record<string, unknown>) => {
+      const job = await api<Job>("/jobs", {
         method: "POST",
-        body: JSON.stringify({
-          projectId,
-          fileName,
-          mimeType,
-          kind,
-          sizeBytes: file.size,
-        }),
-      },
-    );
+        body: JSON.stringify({ projectId, type, payload }),
+      });
+      toastRef.current.info(
+        "Tarea enviada al motor de IA en segundo plano...",
+        formatJobType(type),
+      );
+      await refresh();
+      return job;
+    },
+    [api, projectId, refresh],
+  );
 
-    // Upload with real XHR progress
-    await new Promise<void>((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("PUT", upload.uploadUrl);
-      xhr.setRequestHeader("Content-Type", mimeType);
+  const uploadFile = useCallback(
+    async (
+      file: File | Blob,
+      fileName: string,
+      kind: MediaAssetKind,
+      durationSeconds?: number,
+      onProgress?: UploadProgressCallback,
+    ) => {
+      const mimeType = resolveMediaMimeType(fileName, file.type);
+      const upload = await api<{ assetId: string; uploadUrl: string }>(
+        "/media/upload-url",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            projectId,
+            fileName,
+            mimeType,
+            kind,
+            sizeBytes: file.size,
+          }),
+        },
+      );
 
-      if (onProgress) {
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100);
-            onProgress(percent, event.loaded, event.total);
+      // Upload with real XHR progress
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", upload.uploadUrl);
+        xhr.setRequestHeader("Content-Type", mimeType);
+
+        if (onProgress) {
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percent = Math.round((event.loaded / event.total) * 100);
+              onProgress(percent, event.loaded, event.total);
+            }
+          };
+        }
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            if (onProgress) onProgress(100, file.size, file.size);
+            resolve();
+          } else {
+            reject(
+              new Error(
+                `Error al subir a almacenamiento S3 (status ${xhr.status})`,
+              ),
+            );
           }
         };
-      }
 
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          if (onProgress) onProgress(100, file.size, file.size);
-          resolve();
-        } else {
-          reject(new Error(`Error al subir a almacenamiento S3 (status ${xhr.status})`));
-        }
-      };
+        xhr.onerror = () =>
+          reject(new Error("Error de red al transferir archivo a MinIO."));
+        xhr.send(file);
+      });
 
-      xhr.onerror = () => reject(new Error("Error de red al transferir archivo a MinIO."));
-      xhr.send(file);
-    });
+      const asset = await api<MediaAsset>(`/media/${upload.assetId}/confirm`, {
+        method: "POST",
+        body: JSON.stringify({ durationSeconds }),
+      });
 
-    const asset = await api<MediaAsset>(`/media/${upload.assetId}/confirm`, {
-      method: "POST",
-      body: JSON.stringify({ durationSeconds }),
-    });
+      toastRef.current.success(`Archivo "${fileName}" subido correctamente.`);
+      await refresh();
+      return asset;
+    },
+    [api, projectId, refresh],
+  );
 
-    toast.success(`Archivo "${fileName}" subido correctamente.`);
-    await refresh();
-    return asset;
-  }
+  const downloadAsset = useCallback(
+    async (assetId: string) => {
+      const { downloadUrl, name } = await api<{
+        downloadUrl: string;
+        name: string;
+      }>(`/media/${assetId}/download-url`);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = name;
+      link.hidden = true;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    },
+    [api],
+  );
 
-  async function downloadAsset(assetId: string) {
-    const { downloadUrl, name } = await api<{
-      downloadUrl: string;
-      name: string;
-    }>(`/media/${assetId}/download-url`);
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.download = name;
-    link.hidden = true;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  }
-
-  async function deleteAsset(assetId: string) {
-    await api(`/media/${assetId}`, { method: "DELETE" });
-    setAssetUrls((current) => {
-      const next = { ...current };
-      delete next[assetId];
-      return next;
-    });
-    toast.info("Archivo eliminado del proyecto.");
-    await refresh();
-  }
+  const deleteAsset = useCallback(
+    async (assetId: string) => {
+      await api(`/media/${assetId}`, { method: "DELETE" });
+      setAssetUrls((current) => {
+        const next = { ...current };
+        delete next[assetId];
+        return next;
+      });
+      toastRef.current.info("Archivo eliminado del proyecto.");
+      await refresh();
+    },
+    [api, refresh],
+  );
 
   const value = useMemo(
     () =>
@@ -261,13 +305,23 @@ export function ProjectProviderLayout() {
             project,
             assetUrls,
             refresh,
+            retainFastPolling,
             createJob,
             uploadFile,
             downloadAsset,
             deleteAsset,
           }
         : null,
-    [assetUrls, project, refresh],
+    [
+      assetUrls,
+      project,
+      refresh,
+      retainFastPolling,
+      createJob,
+      uploadFile,
+      downloadAsset,
+      deleteAsset,
+    ],
   );
 
   if (notFound) return <Navigate to="/projects" replace />;
@@ -283,6 +337,7 @@ export function ProjectProviderLayout() {
 
   return (
     <ProjectContext.Provider value={value}>
+      <TourProjectBridge />
       <Outlet />
     </ProjectContext.Provider>
   );

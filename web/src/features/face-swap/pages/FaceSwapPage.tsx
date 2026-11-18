@@ -1,18 +1,13 @@
 import {
   ArrowRight,
   Check,
-  FileVideo2,
-  Image as ImageIcon,
   Loader2,
-  Play,
   RefreshCw,
   ScanFace,
-  ShieldCheck,
-  UserRound,
-  Video,
   Users,
+  Video,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../../app/providers/AuthProvider";
 import { useToast } from "../../../components/ui/Toast";
 import { Button } from "../../../components/ui/Button";
@@ -20,33 +15,35 @@ import { JobProgress } from "../../../components/ui/JobProgress";
 import { Notice } from "../../../components/ui/Notice";
 import { PageHeader } from "../../../components/ui/PageHeader";
 import { Panel } from "../../../components/ui/Panel";
-import {
-  IMAGE_FILE_ACCEPT,
-  VIDEO_FILE_ACCEPT,
-} from "../../../shared/media/asset-files";
-import { AssetSelect } from "../../media/components/AssetSelect";
-import { FileUpload } from "../../media/components/FileUpload";
 import { MediaPlayer } from "../../media/components/MediaPlayer";
 import { useSelectedAsset } from "../../media/hooks/useSelectedAsset";
+import { useActiveJobPolling } from "../../jobs/hooks/useActiveJobPolling";
+import { useJobForType } from "../../jobs/hooks/useJobForType";
 import { useProject } from "../../projects/context/ProjectContext";
-import { formatBytes } from "../../../shared/lib/format";
-
-type FaceIdentity = {
-  id: string;
-  label: string;
-  thumbnailDataUrl: string;
-  referenceFrameNumber: number;
-  referenceFacePosition: number;
-  timestampSeconds: number;
-  appearanceCount: number;
-  confidence: number;
-};
+import { ConsentPanel } from "../components/ConsentPanel";
+import { EmptyIdentityState } from "../components/EmptyIdentityState";
+import { GeneratedVideoPlaceholder } from "../components/GeneratedVideoPlaceholder";
+import { IdentityGrid } from "../components/IdentityGrid";
+import { SectionHeading } from "../components/SectionHeading";
+import { SourceImagePanel } from "../components/SourceImagePanel";
+import { TargetVideoPanel } from "../components/TargetVideoPanel";
+import {
+  getFaceSwapBlockers,
+  sameIdentitySelection,
+  type FaceIdentity,
+} from "../lib/face-swap-state";
 
 export function FaceSwapPage() {
   const { api } = useAuth();
   const { toast } = useToast();
-  const { project, assetUrls, uploadFile, createJob, downloadAsset, refresh } =
-    useProject();
+  const {
+    project,
+    assetUrls,
+    uploadFile,
+    createJob,
+    downloadAsset,
+    retainFastPolling,
+  } = useProject();
   const [consent, setConsent] = useState(false);
   const [selectedIdentityIds, setSelectedIdentityIds] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -54,6 +51,19 @@ export function FaceSwapPage() {
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<"success" | "error">(
     "success",
+  );
+
+  const showMessage = useCallback(
+    (text: string, tone: "success" | "error" = "success") => {
+      setMessage(text);
+      setMessageTone(tone);
+      if (tone === "success") {
+        toast.success(text);
+      } else {
+        toast.error(text);
+      }
+    },
+    [toast],
   );
   const requestedAnalysis = useRef(new Set<string>());
 
@@ -85,10 +95,10 @@ export function FaceSwapPage() {
     setSelectedId: setVideoId,
   } = useSelectedAsset(videos);
 
-  const analysisJob = (project.jobs || []).find(
-    (job) =>
-      job.type === "ANALYZE_VIDEO_FACES" &&
-      job.payload?.sourceVideoAssetId === videoId,
+  const { job: analysisJob, running: analysisRunning } = useJobForType(
+    project.jobs,
+    "ANALYZE_VIDEO_FACES",
+    (job) => job.payload?.sourceVideoAssetId === videoId,
   );
   const identities = (
     analysisJob?.status === "COMPLETED" &&
@@ -96,30 +106,40 @@ export function FaceSwapPage() {
       ? analysisJob.result.identities
       : []
   ) as FaceIdentity[];
-  const analysisRunning =
-    analysisJob?.status === "PENDING" || analysisJob?.status === "PROCESSING";
 
-  const faceSwapJob = (project.jobs || []).find((job) => {
-    const jobIdentityIds = Array.isArray(job.payload?.targetIdentityIds)
-      ? job.payload.targetIdentityIds
-      : job.payload?.targetIdentityId
-        ? [job.payload.targetIdentityId]
-        : [];
-    return (
-      job.type === "FACE_SWAP" &&
-      job.payload?.sourceImageAssetId === imageId &&
-      job.payload?.sourceVideoAssetId === videoId &&
-      sameIdentitySelection(jobIdentityIds, selectedIdentityIds)
-    );
-  });
-  const swapRunning =
-    faceSwapJob?.status === "PENDING" || faceSwapJob?.status === "PROCESSING";
+  const { job: faceSwapJob, running: swapRunning } = useJobForType(
+    project.jobs,
+    "FACE_SWAP",
+    (job) => {
+      const jobIdentityIds = Array.isArray(job.payload?.targetIdentityIds)
+        ? job.payload.targetIdentityIds
+        : job.payload?.targetIdentityId
+          ? [job.payload.targetIdentityId]
+          : [];
+      return (
+        job.payload?.sourceImageAssetId === imageId &&
+        job.payload?.sourceVideoAssetId === videoId &&
+        sameIdentitySelection(jobIdentityIds, selectedIdentityIds)
+      );
+    },
+  );
   const result = (project.mediaAssets || []).find(
     (asset) =>
       asset.kind === "FACE_SWAP_RESULT_VIDEO" &&
       asset.status === "READY" &&
       asset.metadata?.sourceJobId === faceSwapJob?.id,
   );
+
+  const blockers = getFaceSwapBlockers({
+    hasImage: Boolean(image),
+    hasVideo: Boolean(video),
+    busy,
+    analysisRunning,
+    swapRunning,
+    identityCount: identities.length,
+    selectedCount: selectedIdentityIds.length,
+    consent,
+  });
 
   useEffect(() => {
     setSelectedIdentityIds([]);
@@ -152,16 +172,9 @@ export function FaceSwapPage() {
         setAnalysisStartError(value);
         showMessage(value, "error");
       });
-  }, [analysisJob, createJob, videoId]);
+  }, [analysisJob, createJob, showMessage, videoId]);
 
-  useEffect(() => {
-    if (!analysisRunning && !swapRunning) return;
-    const interval = window.setInterval(
-      () => refresh().catch(() => undefined),
-      1000,
-    );
-    return () => window.clearInterval(interval);
-  }, [analysisRunning, refresh, swapRunning]);
+  useActiveJobPolling(retainFastPolling, analysisRunning || swapRunning);
 
   async function retryAnalysis() {
     if (!videoId) return;
@@ -248,16 +261,6 @@ export function FaceSwapPage() {
       showMessage((error as Error).message, "error");
     } finally {
       setBusy(false);
-    }
-  }
-
-  function showMessage(value: string, tone: "success" | "error" = "success") {
-    setMessage(value);
-    setMessageTone(tone);
-    if (tone === "success") {
-      toast.success(value);
-    } else {
-      toast.error(value);
     }
   }
 
@@ -387,171 +390,25 @@ export function FaceSwapPage() {
       )}
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <Panel className="overflow-hidden border-emerald-200/80 bg-gradient-to-br from-white via-white to-emerald-50/50 p-0 dark:border-emerald-500/20 dark:from-[#0b171c] dark:via-[#0b171c] dark:to-emerald-950/20">
-          <SectionHeading
-            icon={<UserRound size={22} />}
-            title="Rostro fuente"
-            description="Imagen que se usara para reemplazar los rostros."
-          />
-          <div className="px-5 pb-5">
-            {images.length === 0 ? (
-              <div className="mt-2">
-                <FileUpload
-                  mode="dropzone"
-                  accept={IMAGE_FILE_ACCEPT}
-                  label="Arrastra una foto del rostro aquí o haz clic para subir"
-                  busy={busy || swapRunning}
-                  onSelect={uploadImage}
-                />
-              </div>
-            ) : (
-              <>
-                <AssetSelect
-                  label="Imagen del proyecto"
-                  assets={images}
-                  value={imageId}
-                  onChange={setImageId}
-                  disabled={busy || swapRunning}
-                />
-                {image && (
-                  <figure className="mt-3 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 shadow-sm dark:border-white/10 dark:bg-[#061014]">
-                    <div className="grid h-52 place-items-center sm:h-60 lg:h-64">
-                      {assetUrls[image.id] ? (
-                        <img
-                          className="size-full object-contain"
-                          src={assetUrls[image.id]}
-                          alt={`Vista previa de ${image.name}`}
-                        />
-                      ) : (
-                        <div className="grid justify-items-center gap-2 text-zinc-500 dark:text-zinc-400">
-                          <Loader2 className="animate-spin" size={24} />
-                          <span className="text-xs">Cargando vista previa</span>
-                        </div>
-                      )}
-                    </div>
-                    <figcaption className="flex min-w-0 items-center gap-2 border-t border-zinc-200 bg-white px-3 py-2.5 dark:border-white/10 dark:bg-[#0b171c]">
-                      <ImageIcon
-                        className="shrink-0 text-emerald-600 dark:text-emerald-400"
-                        size={17}
-                      />
-                      <span className="truncate text-sm font-medium">
-                        {image.name}
-                      </span>
-                    </figcaption>
-                  </figure>
-                )}
-                <div className="mt-3 flex justify-end">
-                  <FileUpload
-                    accept={IMAGE_FILE_ACCEPT}
-                    label={image ? "Cambiar imagen" : "Subir imagen"}
-                    busy={busy || swapRunning}
-                    onSelect={uploadImage}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-        </Panel>
+        <SourceImagePanel
+          images={images}
+          image={image}
+          imageId={imageId}
+          assetUrls={assetUrls}
+          disabled={busy || swapRunning}
+          onImageChange={setImageId}
+          onUpload={uploadImage}
+        />
 
-        <Panel className="overflow-hidden border-cyan-200/80 bg-gradient-to-br from-white via-white to-cyan-50/50 p-0 dark:border-cyan-500/20 dark:from-[#0b171c] dark:via-[#0b171c] dark:to-cyan-950/20">
-          <SectionHeading
-            icon={<Video size={22} />}
-            title="Video objetivo"
-            description="Video donde se reemplazaran los rostros seleccionados."
-          />
-          <div className="px-5 pb-5">
-            {videos.length === 0 ? (
-              <div className="mt-2">
-                <FileUpload
-                  mode="dropzone"
-                  accept={VIDEO_FILE_ACCEPT}
-                  label="Arrastra el video objetivo aquí o haz clic para subir"
-                  busy={busy || analysisRunning || swapRunning}
-                  onSelect={uploadVideo}
-                />
-              </div>
-            ) : (
-              <>
-                <AssetSelect
-                  label="Video del proyecto"
-                  assets={videos}
-                  value={videoId}
-                  onChange={setVideoId}
-                  disabled={busy || analysisRunning || swapRunning}
-                />
-                {video && (
-                  <div className="mt-3 grid overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#081216] sm:grid-cols-[minmax(0,1.35fr)_minmax(180px,0.65fr)]">
-                    <div className="grid min-h-52 place-items-center bg-zinc-950 sm:min-h-64">
-                      {assetUrls[video.id] ? (
-                        <video
-                          className="size-full max-h-64 object-contain"
-                          controls
-                          preload="metadata"
-                          src={assetUrls[video.id]}
-                          aria-label={`Vista previa de ${video.name}`}
-                        />
-                      ) : (
-                        <Loader2 className="animate-spin text-zinc-400" size={24} />
-                      )}
-                    </div>
-                    <div className="flex min-w-0 flex-col justify-between gap-4 border-t border-zinc-200 p-4 dark:border-white/10 sm:border-l sm:border-t-0">
-                      <div className="flex min-w-0 gap-3">
-                        <span className="grid size-11 shrink-0 place-items-center rounded-md bg-zinc-100 text-zinc-600 dark:bg-white/10 dark:text-zinc-300">
-                          <FileVideo2 size={21} />
-                        </span>
-                        <div className="min-w-0">
-                          <strong className="block truncate text-sm">
-                            {video.name}
-                          </strong>
-                          <div className="mt-2 grid gap-1 text-xs text-zinc-500 dark:text-zinc-400">
-                            <span>
-                              {formatDuration(
-                                Number(
-                                  video.durationSeconds ||
-                                    video.metadata?.durationSeconds ||
-                                    0,
-                                ),
-                              )}
-                            </span>
-                            <span>{formatBytes(video.sizeBytes)}</span>
-                            <span>
-                              {video.mimeType.split("/")[1]?.toUpperCase() ||
-                                "VIDEO"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <FileUpload
-                        accept={VIDEO_FILE_ACCEPT}
-                        label="Cambiar video"
-                        busy={busy || analysisRunning || swapRunning}
-                        onSelect={uploadVideo}
-                      />
-                    </div>
-                  </div>
-                )}
-                {!video && (
-                  <div className="mt-3 flex min-h-52 flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-6 text-center dark:border-white/10 dark:bg-[#081216]">
-                    <FileVideo2
-                      className="text-zinc-400"
-                      size={34}
-                      strokeWidth={1.5}
-                    />
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                      Selecciona o sube el video que deseas editar.
-                    </p>
-                    <FileUpload
-                      accept={VIDEO_FILE_ACCEPT}
-                      label="Subir video"
-                      busy={busy || analysisRunning || swapRunning}
-                      onSelect={uploadVideo}
-                    />
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </Panel>
+        <TargetVideoPanel
+          videos={videos}
+          video={video}
+          videoId={videoId}
+          assetUrls={assetUrls}
+          disabled={busy || analysisRunning || swapRunning}
+          onVideoChange={setVideoId}
+          onUpload={uploadVideo}
+        />
       </section>
 
       <Panel className="border-emerald-200/80 bg-gradient-to-br from-white to-emerald-50/30 dark:border-emerald-500/20 dark:from-[#0b171c] dark:to-emerald-950/10">
@@ -600,56 +457,12 @@ export function FaceSwapPage() {
             </Button>
           </div>
         ) : identities.length ? (
-          <div className="grid gap-4">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-              {identities.map((identity) => {
-                const selected = selectedIdentityIds.includes(identity.id);
-                return (
-                  <button
-                    key={identity.id}
-                    type="button"
-                    aria-pressed={selected}
-                    disabled={swapRunning}
-                    onClick={() =>
-                      setSelectedIdentityIds((current) =>
-                        current.includes(identity.id)
-                          ? current.filter(
-                              (identityId) => identityId !== identity.id,
-                            )
-                          : [...current, identity.id],
-                      )
-                    }
-                    className={`group relative overflow-hidden rounded-lg border bg-white text-left transition dark:bg-[#081216] ${
-                      selected
-                        ? "border-emerald-500 ring-2 ring-emerald-500/25 dark:bg-emerald-950/25"
-                        : "border-zinc-200 hover:border-emerald-400 dark:border-white/10 dark:hover:border-emerald-500/60"
-                    }`}
-                  >
-                    <span
-                      className={`absolute left-3 top-3 z-10 grid size-6 place-items-center rounded border shadow-sm ${selected ? "border-emerald-500 bg-emerald-500 text-white" : "border-white/70 bg-zinc-950/55 text-transparent"}`}
-                    >
-                      <Check size={15} />
-                    </span>
-                    <img
-                      className="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                      src={identity.thumbnailDataUrl}
-                      alt={identity.label}
-                    />
-                    <span className="flex items-center justify-between gap-2 px-3 py-2.5">
-                      <span className="min-w-0">
-                        <strong className="block truncate text-sm">
-                          {identity.label}
-                        </strong>
-                        <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                          Vista en {identity.appearanceCount} muestras
-                        </span>
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <IdentityGrid
+            identities={identities}
+            selectedIdentityIds={selectedIdentityIds}
+            disabled={swapRunning}
+            onSelectionChange={setSelectedIdentityIds}
+          />
         ) : analysisJob?.status === "COMPLETED" ? (
           <EmptyIdentityState text="No se detectaron rostros utilizables en este video. Prueba con un video mas nitido o con rostros visibles." />
         ) : (
@@ -657,56 +470,15 @@ export function FaceSwapPage() {
         )}
       </Panel>
 
-      <Panel className="border-emerald-200/80 bg-gradient-to-r from-white to-emerald-50/40 dark:border-emerald-500/20 dark:from-[#0b171c] dark:to-emerald-950/20">
-        <div className="grid items-center gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
-          <div className="flex items-start gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-              <ShieldCheck size={22} />
-            </span>
-            <div>
-              <h2 className="font-semibold">Confirmacion</h2>
-              <label className="flex items-start gap-3">
-                <input
-                  className="mt-1 size-4 w-auto"
-                  type="checkbox"
-                  checked={consent}
-                  onChange={(event) => setConsent(event.target.checked)}
-                />
-                <span className="text-sm text-zinc-600 dark:text-zinc-300">
-                  Confirmo que tengo derechos o autorizacion sobre los archivos
-                  y acepto utilizar esta funcion de forma responsable.
-                </span>
-              </label>
-            </div>
-          </div>
-          {swapRunning && (
-            <div className="lg:col-span-2">
-              <JobProgress
-                label="Aplicando reemplazo facial"
-                progress={faceSwapJob?.progress || 0}
-              />
-            </div>
-          )}
-          <Button
-            className="min-w-52"
-            onClick={run}
-            disabled={
-              busy ||
-              analysisRunning ||
-              swapRunning ||
-              !image ||
-              !video ||
-              selectedIdentityIds.length === 0 ||
-              !consent
-            }
-          >
-            <Play size={17} />
-            {selectedIdentityIds.length > 1
-              ? `Reemplazar ${selectedIdentityIds.length} personas`
-              : "Iniciar reemplazo"}
-          </Button>
-        </div>
-      </Panel>
+      <ConsentPanel
+        consent={consent}
+        swapRunning={swapRunning}
+        swapProgress={faceSwapJob?.progress || 0}
+        selectedCount={selectedIdentityIds.length}
+        blockers={blockers}
+        onConsentChange={setConsent}
+        onRun={run}
+      />
 
       {result ? (
         <MediaPlayer
@@ -716,87 +488,8 @@ export function FaceSwapPage() {
           onDownload={downloadAsset}
         />
       ) : (
-        <Panel className="overflow-hidden p-0">
-          <div className="flex items-center gap-3 border-b border-zinc-200 px-5 py-4 dark:border-white/10">
-            <span className="grid size-11 shrink-0 place-items-center rounded-md bg-zinc-100 text-zinc-600 dark:bg-white/10 dark:text-zinc-300">
-              <Video size={21} />
-            </span>
-            <span>
-              <strong className="block text-sm">Video generado</strong>
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                Pendiente
-              </span>
-            </span>
-          </div>
-          <div className="m-5 grid min-h-28 place-items-center rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-6 py-5 text-center dark:border-white/10 dark:bg-[#081216]">
-            <div className="grid justify-items-center gap-2 text-zinc-500 dark:text-zinc-400">
-              <FileVideo2 size={27} strokeWidth={1.5} />
-              <p className="text-sm">El video generado aparecera aqui.</p>
-              <span className="text-xs">
-                Inicia el reemplazo para obtener el resultado.
-              </span>
-            </div>
-          </div>
-        </Panel>
+        <GeneratedVideoPlaceholder />
       )}
     </>
-  );
-}
-
-function SectionHeading({
-  icon,
-  title,
-  description,
-  compact = false,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  compact?: boolean;
-}) {
-  return (
-    <header
-      className={`flex items-center gap-3 ${compact ? "" : "px-5 pb-4 pt-5"}`}
-    >
-      <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-        {icon}
-      </span>
-      <span className="min-w-0">
-        <h2 className="font-semibold text-zinc-950 dark:text-zinc-50">
-          {title}
-        </h2>
-        <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
-          {description}
-        </p>
-      </span>
-    </header>
-  );
-}
-
-function formatDuration(seconds: number) {
-  if (!seconds) return "Duracion por detectar";
-  const total = Math.max(0, Math.round(seconds));
-  const hours = Math.floor(total / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  const remainingSeconds = total % 60;
-  return hours
-    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`
-    : `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
-}
-
-function EmptyIdentityState({ text }: { text: string }) {
-  return (
-    <div className="grid min-h-24 place-items-center rounded-lg border border-dashed border-zinc-300 px-5 text-center dark:border-white/10">
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">{text}</p>
-    </div>
-  );
-}
-
-function sameIdentitySelection(left: string[], right: string[]) {
-  if (left.length !== right.length) return false;
-  const normalizedLeft = [...left].sort();
-  const normalizedRight = [...right].sort();
-  return normalizedLeft.every(
-    (identityId, index) => identityId === normalizedRight[index],
   );
 }

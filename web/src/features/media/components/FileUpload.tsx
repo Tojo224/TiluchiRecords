@@ -1,11 +1,7 @@
-import {
-  ChangeEvent,
-  DragEvent,
-  useRef,
-  useState,
-} from "react";
+import { ChangeEvent, DragEvent, useRef, useState } from "react";
 import { Upload, UploadCloud, Loader2 } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
+import { tourAnchor, type TourAnchorName } from "../../../tour/anchors";
 import { formatBytes } from "../../../shared/lib/format";
 
 export function FileUpload({
@@ -13,6 +9,7 @@ export function FileUpload({
   label = "Seleccionar archivo",
   description,
   busy,
+  anchor,
   mode = "button",
   className = "",
   onSelect,
@@ -21,6 +18,8 @@ export function FileUpload({
   label?: string;
   description?: string;
   busy?: boolean;
+  /** Optional guided-tour anchor applied to the visible button or dropzone. */
+  anchor?: TourAnchorName;
   mode?: "button" | "dropzone";
   className?: string;
   onSelect: (file: File) => Promise<void>;
@@ -41,7 +40,9 @@ export function FileUpload({
 
     // Simulate steady progress feedback if standard Promise doesn't stream progress directly
     const interval = setInterval(() => {
-      setProgress((prev) => (prev < 90 ? prev + Math.floor(Math.random() * 15) : prev));
+      setProgress((prev) =>
+        prev < 90 ? prev + Math.floor(Math.random() * 15) : prev,
+      );
     }, 200);
 
     try {
@@ -100,6 +101,7 @@ export function FileUpload({
           onDragLeave={onDragLeave}
           onDrop={onDrop}
           onClick={() => !busy && !uploading && input.current?.click()}
+          {...(anchor ? tourAnchor(anchor) : {})}
           className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-7 text-center transition-all duration-200 ${
             isDragOver
               ? "border-emerald-500 bg-emerald-500/10 scale-[1.01]"
@@ -116,8 +118,12 @@ export function FileUpload({
               </div>
               <div className="w-full">
                 <div className="flex justify-between text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
-                  <span className="truncate max-w-[200px]">{selectedFileName}</span>
-                  <span>{selectedFileSize ? formatBytes(selectedFileSize) : ""}</span>
+                  <span className="truncate max-w-[200px]">
+                    {selectedFileName}
+                  </span>
+                  <span>
+                    {selectedFileSize ? formatBytes(selectedFileSize) : ""}
+                  </span>
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
                   <div
@@ -127,7 +133,9 @@ export function FileUpload({
                 </div>
               </div>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 animate-pulse">
-                {progress === 100 ? "Confirmando en almacenamiento S3..." : "Transfiriendo archivo..."}
+                {progress === 100
+                  ? "Confirmando en almacenamiento S3..."
+                  : "Transfiriendo archivo..."}
               </p>
             </div>
           ) : (
@@ -139,7 +147,7 @@ export function FileUpload({
                 {label}
               </h4>
               <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                Arrastra y suelta tu archivo aquí, o haz clic para explorar
+                Arrastra y suelta tu archivo aqui, o haz clic para explorar
               </p>
               {description && (
                 <span className="mt-2.5 inline-flex items-center rounded-md bg-zinc-200/60 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:bg-white/10 dark:text-zinc-300">
@@ -167,6 +175,7 @@ export function FileUpload({
         className={className}
         disabled={busy || uploading}
         onClick={() => input.current?.click()}
+        {...(anchor ? tourAnchor(anchor) : {})}
       >
         {uploading ? (
           <>
