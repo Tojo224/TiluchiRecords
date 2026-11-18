@@ -16,6 +16,7 @@ import { useJobForType } from "../../jobs/hooks/useJobForType";
 import { formatBytes, formatDuration } from "../../../shared/lib/format";
 import { VIDEO_FILE_ACCEPT } from "../../../shared/media/asset-files";
 import type { MediaAsset } from "../../../shared/types/domain";
+import { TOUR_ANCHORS, tourAnchor } from "../../../tour/anchors";
 import { useProject } from "../../projects/context/ProjectContext";
 import { KaraokeSingingModal } from "../components/KaraokeSingingModal";
 import { getKaraokeBlockers } from "../lib/karaoke-state";
@@ -148,6 +149,7 @@ export function KaraokePage() {
           <FileUpload
             accept={VIDEO_FILE_ACCEPT}
             label="Subir video"
+            anchor={TOUR_ANCHORS.karaokeUpload}
             busy={busy || processing}
             onSelect={upload}
           />
@@ -165,6 +167,7 @@ export function KaraokePage() {
           <div>
             <Button
               onClick={generate}
+              {...tourAnchor(TOUR_ANCHORS.karaokeCreate)}
               disabled={blockers.length > 0}
               aria-describedby={
                 blockers.length ? "karaoke-blockers" : undefined
@@ -233,6 +236,7 @@ export function KaraokePage() {
             karaokeVideo && assetUrls[karaokeVideo.id]
               ? {
                   label: "Cantar",
+                  anchor: TOUR_ANCHORS.karaokeSing,
                   onClick: () => setSingingOpen(true),
                 }
               : undefined

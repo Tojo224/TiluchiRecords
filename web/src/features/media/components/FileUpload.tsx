@@ -1,16 +1,20 @@
 import { ChangeEvent, useRef, useState } from "react";
 import { Upload } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
+import { tourAnchor, type TourAnchorName } from "../../../tour/anchors";
 
 export function FileUpload({
   accept,
   label = "Seleccionar archivo",
   busy,
+  anchor,
   onSelect,
 }: {
   accept: string;
   label?: string;
   busy?: boolean;
+  /** Optional guided-tour anchor applied to the visible button. */
+  anchor?: TourAnchorName;
   onSelect: (file: File) => Promise<void>;
 }) {
   const input = useRef<HTMLInputElement>(null);
@@ -39,6 +43,7 @@ export function FileUpload({
         variant="secondary"
         disabled={busy || uploading}
         onClick={() => input.current?.click()}
+        {...(anchor ? tourAnchor(anchor) : {})}
       >
         <Upload size={18} />
         {uploading ? "Subiendo..." : label}

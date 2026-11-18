@@ -6,6 +6,7 @@ import { PageHeader } from "../../../components/ui/PageHeader";
 import { NewProjectModal } from "../components/NewProjectModal";
 import { ProjectCard } from "../components/ProjectCard";
 import { useProjects } from "../hooks/useProjects";
+import { TOUR_ANCHORS, tourAnchor } from "../../../tour/anchors";
 
 export function ProjectsPage() {
   const { projects, loading, error } = useProjects();
@@ -16,7 +17,10 @@ export function ProjectsPage() {
         title="Proyectos"
         description="Todas tus producciones en un solo lugar."
         actions={
-          <Button onClick={() => setCreating(true)}>
+          <Button
+            onClick={() => setCreating(true)}
+            {...tourAnchor(TOUR_ANCHORS.newProject)}
+          >
             <Plus size={18} />
             Nuevo proyecto
           </Button>

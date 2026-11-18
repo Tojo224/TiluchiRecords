@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/Button";
 import { DisabledReason } from "@/components/ui/DisabledReason";
 import { JobProgress } from "@/components/ui/JobProgress";
 import { Panel } from "@/components/ui/Panel";
+import { TOUR_ANCHORS, tourAnchor } from "@/tour/anchors";
 
 type ConsentPanelProps = {
   consent: boolean;
@@ -36,6 +37,7 @@ export function ConsentPanel({
               <input
                 className="mt-1 size-4 w-auto"
                 type="checkbox"
+                {...tourAnchor(TOUR_ANCHORS.faceSwapConsent)}
                 checked={consent}
                 onChange={(event) => onConsentChange(event.target.checked)}
               />
@@ -58,6 +60,7 @@ export function ConsentPanel({
           <Button
             className="min-w-52"
             onClick={onRun}
+            {...tourAnchor(TOUR_ANCHORS.faceSwapRun)}
             disabled={blockers.length > 0}
             aria-describedby={
               blockers.length ? "face-swap-blockers" : undefined

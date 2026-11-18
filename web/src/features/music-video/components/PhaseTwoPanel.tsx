@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/Button";
 import { DisabledReason } from "@/components/ui/DisabledReason";
 import { JobProgress } from "@/components/ui/JobProgress";
 import { Panel } from "@/components/ui/Panel";
+import { TOUR_ANCHORS, tourAnchor } from "@/tour/anchors";
 import { clipStageLabel } from "../lib/scene-labels";
 import type { MusicVideoState } from "../lib/music-video-state";
 
@@ -86,6 +87,7 @@ export function PhaseTwoPanel({
         </div>
         <Button
           onClick={onProduce}
+          {...tourAnchor(TOUR_ANCHORS.musicProduce)}
           disabled={blockers.length > 0}
           aria-describedby={blockers.length ? "produce-blockers" : undefined}
         >

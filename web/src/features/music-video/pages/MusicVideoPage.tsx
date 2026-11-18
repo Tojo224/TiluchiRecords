@@ -6,6 +6,7 @@ import { Notice } from "../../../components/ui/Notice";
 import { PageHeader } from "../../../components/ui/PageHeader";
 import { Panel } from "../../../components/ui/Panel";
 import { JobProgress } from "../../../components/ui/JobProgress";
+import { TOUR_ANCHORS, tourAnchor } from "../../../tour/anchors";
 import { FileUpload } from "../../media/components/FileUpload";
 import { AssetSelect } from "../../media/components/AssetSelect";
 import { useSelectedAsset } from "../../media/hooks/useSelectedAsset";
@@ -257,6 +258,7 @@ export function MusicVideoPage() {
           <FileUpload
             accept={MUSIC_FILE_ACCEPT}
             label="Subir musica"
+            anchor={TOUR_ANCHORS.musicUpload}
             busy={busy}
             onSelect={upload}
           />
@@ -305,6 +307,7 @@ export function MusicVideoPage() {
               Direccion visual
               <textarea
                 className="min-h-24"
+                {...tourAnchor(TOUR_ANCHORS.musicPrompt)}
                 value={prompt}
                 maxLength={500}
                 disabled={
@@ -338,6 +341,7 @@ export function MusicVideoPage() {
             )}
             <Button
               onClick={preparePlan}
+              {...tourAnchor(TOUR_ANCHORS.musicPlan)}
               disabled={planBlockers.length > 0}
               aria-describedby={
                 planBlockers.length ? "plan-blockers" : undefined

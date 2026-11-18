@@ -17,6 +17,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../app/providers/AuthProvider";
 import { Button } from "../../../components/ui/Button";
 import { Notice } from "../../../components/ui/Notice";
+import { TOUR_ANCHORS, tourAnchor } from "../../../tour/anchors";
 import { FileUpload } from "../../media/components/FileUpload";
 import { useProject } from "../context/ProjectContext";
 import {
@@ -174,6 +175,7 @@ export function ProjectOverviewPage() {
       <section
         className="grid gap-4 md:grid-cols-3"
         aria-label="Flujos creativos"
+        {...tourAnchor(TOUR_ANCHORS.projectFlows)}
       >
         {flows.map(({ slug, title, text, icon: Icon, surface, iconStyle }) => (
           <Link
