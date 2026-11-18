@@ -41,14 +41,14 @@ Chain strategy (user decision): PRs target `refactor/web-adjustments` (the lates
 - [x] T1 Inline help: reusable `DisabledReason`; pure blocker functions (face-swap, karaoke, music-video phase 2) with unit tests; wire into pages; explicit `tone` on Notice usage instead of `includes("correctamente")`; clearer error copy
 - [x] T2 Tour foundation: add `driver.js`; `src/tour/` (snapshot, sameInputs, missions, storage, tourSelector) with unit tests; `data-tour` anchors (~11)
 - [x] T3 Tour runner + UI: TourProvider, TourProjectBridge, welcome, MissionChecklist, micro-tours, exit/Esc, reduced-motion, dark theme styling
-- [ ] T4 `/help` page: typed content per flow, route in App.tsx, link inside existing Sidebar nav, "Repetir tutorial"
+- [x] T4 `/help` page: typed content per flow, route in App.tsx, link inside existing Sidebar nav, "Repetir tutorial"
 - [ ] T5 (optional) Playwright e2e of the tour path
 
 ## Route declaration
 Each task: delegated direct (one bounded writer, sequential). Trigger: writer trigger (2+ non-trivial files).
 
 ## Progress
-T1, T2, T3 and follow-ups done, verified and reviewed (pushed after this commit). Running authored count: 477 lines (> 400 budget): chain strategy decided (PRs to `refactor/web-adjustments`, opened by the user).
+T1-T4 and follow-ups done, verified and reviewed; all pushed to `feat/web-help-tutorial`. T5 (optional e2e) not started: it needs a running backend. Chain strategy decided (PRs to `refactor/web-adjustments`, opened by the user). Suggested PR slices (each commit already passed review as part of these ranges): (1) T1 `640afb4`; (2) T2 `9eaab5d`; (3) T3 `2a1beec` + `62dac25` + follow-ups `44322da`; (4) T4 `da49d29`. Docs commits ride with their slice.
 
 ## Evidence (commit per task)
 - T1: 640afb4 feat(web): explain disabled actions with inline requirement hints (15 files, +408/-69; new DisabledReason, shared/lib/blockers, karaoke-state; getFaceSwapBlockers/getPlanBlockers/getProduceBlockers; explicit Notice tone in Karaoke/Files/ProjectOverview). Checks: build OK; lint 0 errors, 6 warnings (baseline); unit tests 63 passed (baseline 48; parent re-run 63 passed); prettier clean on touched files. Disabled equivalence: face swap checked against legacy expression over 2^7 combinations. Intentional change: "Generacion de karaoke iniciada." now shows success tone (was error).
@@ -62,11 +62,15 @@ T1, T2, T3 and follow-ups done, verified and reviewed (pushed after this commit)
 - T3 review: assessed medium (slice 1836 lines); consent granted by the user; native review (reliability) approved with 1 WARNING + 2 SUGGESTIONS, authority burned (lineage review-f1627301110eda21). Reviewed boundary advances to 62dac25.
 - Follow-ups commit 44322da fix(web): address review follow-ups for inline help and tour (11 files: baseline scope "all|project|none" so the create-project toast is no longer silenced on a fresh project route; userId change clears notices/tour/bridge; tests for tour disposal on route leave; DisabledReason always-mounted live region; notice-tone helper). Checks: build OK; lint 0 errors/6 warnings; unit tests 135 passed (parent re-run 135). Assessed medium, 271 lines, under_budget: no review due, stays pending in the next slice.
 
+- T4: da49d29 feat(web): add help page with per-flow manual and sidebar link (11 files, +591/-2: help-content (7 sections), HelpPage (index as `<ul>` in a labelled section, native `<details>` troubleshooting, "Repetir tutorial", "Empezar tutorial interactivo"), route `help` inside AppLayout, "Ayuda" NavItem inside the existing `<nav>`, "Ver manual de ayuda" link in MissionChecklist, README section "Ayuda y tutorial"). Content fix before commit: help claimed processes advance without the page open, but Video desde musica chains storyboard and compose from page effects (MusicVideoPage.tsx:91-132); text corrected. Checks: build OK; lint 0 errors/6 warnings; unit tests 150 passed (parent re-run 150).
+- T4 slice review: assessed medium (follow-ups + T4, 878 lines); consent granted by the user; native review approved with 1 SUGGESTION (this log was stale, fixed here), authority burned (lineage review-74b8735dd4e1f501). Reviewed boundary advances to da49d29.
+
 ## Follow-ups (advisory, non-blocking, from the reviews)
-- All previous follow-ups (T1 R3-001/R3-002, T2 R3-001, T3 R3-001..003) addressed in 44322da.
-- Open: MusicVideoPage has a similar inline tone expression not extracted to the notice-tone helper (low priority).
-- R3-001: extract a pure tone helper with a unit test for the Karaoke/Files/ProjectOverview Notice tone mapping.
-- R3-002: DisabledReason: always render the live-region container so screen readers announce later changes.
+- All review follow-ups from T1, T2 and T3 were addressed in 44322da; the T4 suggestion is addressed by this update.
+- Open (low priority): MusicVideoPage has a similar inline tone expression not extracted to the `notice-tone` helper.
+- Open: help claims "el proceso en curso termina aunque salgas de la pagina" assume jobs run on the AI worker independently of the browser (README: worker processes Redis jobs in the background); not re-verified in backend code.
+- Open: Playwright e2e of the tour path (T5), needs backend.
+- Note: `web/tutorial-adaptativo.md` (reference) and `.atl/` stay untracked on purpose.
 
 ## Next step
-T4 (/help page).
+Delivery: user opens PRs to `refactor/web-adjustments`. Optionally T5.
