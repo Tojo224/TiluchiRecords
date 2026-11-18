@@ -32,6 +32,13 @@ describe("missions", () => {
     }
   });
 
+  it("gives every mission an accent-free next hint that names a button", () => {
+    for (const mission of MISSIONS) {
+      expect(mission.nextHint).toMatch(/^[\x20-\x7E]+$/);
+      expect(mission.nextHint).toMatch(/"[^"]+"/);
+    }
+  });
+
   it("detects nothing on an empty snapshot", () => {
     expect(completedMissionIds(EMPTY_TOUR_SNAPSHOT)).toEqual([]);
   });

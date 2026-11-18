@@ -16,7 +16,6 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "../components/navigation/Sidebar";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { MissionChecklist } from "../components/tour/MissionChecklist";
-import { TourNotices } from "../components/tour/TourNotices";
 import { TourWelcome } from "../components/tour/TourWelcome";
 import { TourProvider } from "../tour/TourProvider";
 
@@ -100,7 +99,6 @@ export function AppLayout() {
           </main>
         </div>
         <MissionChecklist />
-        <TourNotices />
       </div>
     </TourProvider>
   );

@@ -5,12 +5,6 @@ import type { TourProgress } from "./storage";
 
 export type MissionView = Mission & { done: boolean };
 
-export type TourNotice = {
-  id: number;
-  tone: "success" | "info";
-  message: string;
-};
-
 /** Project-scoped slice of the snapshot, pushed by the project bridge. */
 export type ProjectReport = {
   projectId: string;
@@ -27,14 +21,12 @@ export type TourContextValue = {
   activeMissionId: string | null;
   /** True once the first evaluation can run (user + projects loaded). */
   showWelcome: boolean;
-  notices: TourNotice[];
   startMission: (missionId: string) => void;
   completeWelcome: () => void;
   dismiss: () => void;
   reopen: () => void;
   /** Resets progress; existing work is re-detected silently. */
   restart: () => void;
-  dismissNotice: (id: number) => void;
   reportProject: (report: ProjectReport | null) => void;
 };
 

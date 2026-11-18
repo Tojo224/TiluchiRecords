@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useLocation, useMatch, useNavigate } from "react-router-dom";
 import { useAuth } from "../app/providers/AuthProvider";
+import { useToast } from "../components/ui/Toast";
 import { useProjects } from "../features/projects/hooks/useProjects";
 import { MISSIONS, missionProgress, nextMission } from "./missions";
 import { reconcileProgress, type BaselineScope } from "./progress";
@@ -35,11 +36,10 @@ import {
   type MissionView,
   type ProjectReport,
   type TourContextValue,
-  type TourNotice,
 } from "./useTour";
 
-const MAX_NOTICES = 3;
 const PROJECT_ROUTE_WAIT_MS = 5000;
+const NEXT_STEP_TOAST_MS = 12000;
 
 type Store = { userId: string; progress: TourProgress };
 
@@ -59,7 +59,7 @@ function sameReport(a: ProjectReport | null, b: ProjectReport | null) {
 /**
  * Observes what the user does (project list + project bridge) and keeps the
  * mission progress. It never forces a script: the first evaluation after load
- * is a silent baseline, later completions become notices.
+ * is a silent baseline, later completions become toasts.
  */
 export function TourProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -77,14 +77,16 @@ export function TourProvider({ children }: { children: ReactNode }) {
 
   const [store, setStore] = useState<Store | null>(null);
   const [report, setReport] = useState<ProjectReport | null>(null);
-  const [notices, setNotices] = useState<TourNotice[]>([]);
   const [activeMissionId, setActiveMissionId] = useState<string | null>(null);
 
   const persistedRef = useRef<TourProgress | null>(null);
   const baselineDone = useRef(false);
   const seenProjects = useRef(new Set<string>());
   const lastEval = useRef<{ progress: TourProgress; snapshot: TourSnapshot }>();
-  const noticeId = useRef(0);
+  // Ids of the tour toasts on screen; replaced (not stacked) by the next ones.
+  const tourToasts = useRef<string[]>([]);
+  const { toast, dismiss: dismissToast } = useToast();
+  const startMissionRef = useRef<(missionId: string) => void>(() => {});
   const disposeTour = useRef<(() => void) | null>(null);
   const tourRoute = useRef<string | null>(null);
   // Last project the bridge reported: the project list in this provider is
@@ -100,6 +102,20 @@ export function TourProvider({ children }: { children: ReactNode }) {
     setActiveMissionId(null);
   }, []);
 
+  const clearTourToasts = useCallback(() => {
+    tourToasts.current.forEach(dismissToast);
+    tourToasts.current = [];
+  }, [dismissToast]);
+
+  // Replaces the previous tour toasts so completions never pile up.
+  const showTourToasts = useCallback(
+    (items: Parameters<typeof toast.custom>[0][]) => {
+      clearTourToasts();
+      tourToasts.current = items.map((item) => toast.custom(item));
+    },
+    [toast, clearTourToasts],
+  );
+
   // Load stored progress only after the user is known; a user change also
   // drops everything that belonged to the previous user.
   useEffect(() => {
@@ -108,7 +124,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
     lastEval.current = undefined;
     lastProjectId.current = null;
     stopTour();
-    setNotices((current) => (current.length ? [] : current));
+    clearTourToasts();
     setReport(null);
     if (!userId) {
       setStore(null);
@@ -117,7 +133,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
     const loaded = loadProgress(userId);
     persistedRef.current = loaded;
     setStore({ userId, progress: loaded });
-  }, [userId, stopTour]);
+  }, [userId, stopTour, clearTourToasts]);
 
   useEffect(() => {
     if (!userId || !progress || persistedRef.current === progress) return;
@@ -157,15 +173,6 @@ export function TourProvider({ children }: { children: ReactNode }) {
     !error &&
     (!routeProjectId || projectPart !== null);
 
-  const pushNotices = useCallback((items: Omit<TourNotice, "id">[]) => {
-    setNotices((current) =>
-      [
-        ...current,
-        ...items.map((item) => ({ ...item, id: ++noticeId.current })),
-      ].slice(-MAX_NOTICES),
-    );
-  }, []);
-
   useEffect(() => {
     if (!ready || !progress) return;
     const last = lastEval.current;
@@ -197,20 +204,44 @@ export function TourProvider({ children }: { children: ReactNode }) {
       }));
     }
     if (result.newlyCompleted.length === 0 || progress.dismissed) return;
-    const toasts = result.newlyCompleted.flatMap((id) => {
+    const done = result.newlyCompleted.flatMap((id) => {
       const mission = MISSIONS.find((item) => item.id === id);
-      return mission
-        ? [{ tone: "success" as const, message: mission.doneToast }]
-        : [];
+      return mission ? [mission.doneToast] : [];
     });
     const next = nextMission(result.progress.completed);
-    pushNotices([
-      ...toasts,
+    showTourToasts([
+      ...(done.length
+        ? [
+            {
+              type: "success" as const,
+              title: "Paso completado",
+              message: done.join(" "),
+            },
+          ]
+        : []),
       ...(next
-        ? [{ tone: "info" as const, message: `Siguiente paso: ${next.title}.` }]
+        ? [
+            {
+              type: "info" as const,
+              title: `Siguiente paso: ${next.title}`,
+              message: next.nextHint,
+              durationMs: NEXT_STEP_TOAST_MS,
+              action: {
+                label: "Mostrarme",
+                onClick: () => startMissionRef.current(next.id),
+              },
+            },
+          ]
         : []),
     ]);
-  }, [ready, progress, snapshot, routeProjectId, updateProgress, pushNotices]);
+  }, [
+    ready,
+    progress,
+    snapshot,
+    routeProjectId,
+    updateProgress,
+    showTourToasts,
+  ]);
 
   // One tour at a time: leaving the tour's page or unmounting ends it.
   useEffect(() => {
@@ -237,9 +268,10 @@ export function TourProvider({ children }: { children: ReactNode }) {
           // Project missions need a project first: point the user to create one.
           targetId = "create-project";
           route = "/projects";
-          pushNotices([
+          showTourToasts([
             {
-              tone: "info",
+              type: "info",
+              title: "Falta un proyecto",
               message: "Primero crea un proyecto para continuar.",
             },
           ]);
@@ -254,9 +286,14 @@ export function TourProvider({ children }: { children: ReactNode }) {
             ? PROJECT_ROUTE_WAIT_MS
             : undefined,
           onUnavailable: () =>
-            pushNotices([
-              { tone: "info", message: TOUR_UNAVAILABLE_MESSAGE },
-              ...(hint ? [{ tone: "info" as const, message: hint }] : []),
+            showTourToasts([
+              {
+                type: "warning",
+                title: "No se pudo mostrar el paso",
+                message: hint
+                  ? `${TOUR_UNAVAILABLE_MESSAGE} ${hint}`
+                  : TOUR_UNAVAILABLE_MESSAGE,
+              },
             ]),
           onDestroy: () => {
             disposeTour.current = null;
@@ -287,9 +324,12 @@ export function TourProvider({ children }: { children: ReactNode }) {
       pathname,
       navigate,
       stopTour,
-      pushNotices,
+      showTourToasts,
     ],
   );
+  useEffect(() => {
+    startMissionRef.current = startMission;
+  }, [startMission]);
 
   const completeWelcome = useCallback(
     () => updateProgress((current) => ({ ...current, welcomed: true })),
@@ -316,14 +356,9 @@ export function TourProvider({ children }: { children: ReactNode }) {
     baselineDone.current = false;
     seenProjects.current.clear();
     lastEval.current = undefined;
-    setNotices([]);
+    clearTourToasts();
     setStore({ userId, progress: fresh });
-  }, [userId, stopTour]);
-  const dismissNotice = useCallback(
-    (id: number) =>
-      setNotices((current) => current.filter((notice) => notice.id !== id)),
-    [],
-  );
+  }, [userId, stopTour, clearTourToasts]);
 
   const value = useMemo<TourContextValue>(() => {
     const completed = progress?.completed ?? [];
@@ -340,13 +375,11 @@ export function TourProvider({ children }: { children: ReactNode }) {
       percent: total ? Math.round((done / total) * 100) : 0,
       activeMissionId,
       showWelcome: ready && !progress?.welcomed && !progress?.dismissed,
-      notices,
       startMission,
       completeWelcome,
       dismiss,
       reopen,
       restart,
-      dismissNotice,
       reportProject,
     };
   }, [
@@ -354,13 +387,11 @@ export function TourProvider({ children }: { children: ReactNode }) {
     snapshot,
     activeMissionId,
     ready,
-    notices,
     startMission,
     completeWelcome,
     dismiss,
     reopen,
     restart,
-    dismissNotice,
     reportProject,
   ]);
 
