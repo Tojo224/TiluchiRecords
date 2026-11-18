@@ -2,7 +2,8 @@ import { cn } from "../../shared/lib/format";
 
 /**
  * Explains next to a disabled action which requirements are still missing.
- * Renders nothing when there are none. Link it from the button with
+ * The live region stays mounted (screen-reader only while empty) so later
+ * changes are announced. Link it from the button with
  * `aria-describedby={id}` while the list is not empty.
  */
 export function DisabledReason({
@@ -14,17 +15,19 @@ export function DisabledReason({
   reasons: string[];
   className?: string;
 }) {
-  if (reasons.length === 0) return null;
+  const empty = reasons.length === 0;
   return (
     <p
       id={id}
       role="status"
       className={cn(
-        "text-xs font-medium text-amber-700 dark:text-amber-300",
-        className,
+        empty
+          ? "sr-only"
+          : "text-xs font-medium text-amber-700 dark:text-amber-300",
+        !empty && className,
       )}
     >
-      Falta: {reasons.join(" · ")}
+      {empty ? null : `Falta: ${reasons.join(" · ")}`}
     </p>
   );
 }

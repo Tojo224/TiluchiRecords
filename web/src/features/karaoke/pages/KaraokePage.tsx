@@ -14,6 +14,10 @@ import { MediaPlayer } from "../../media/components/MediaPlayer";
 import { useSelectedAsset } from "../../media/hooks/useSelectedAsset";
 import { useJobForType } from "../../jobs/hooks/useJobForType";
 import { formatBytes, formatDuration } from "../../../shared/lib/format";
+import {
+  resolveNoticeTone,
+  type MessageTone,
+} from "../../../shared/lib/notice-tone";
 import { VIDEO_FILE_ACCEPT } from "../../../shared/media/asset-files";
 import type { MediaAsset } from "../../../shared/types/domain";
 import { TOUR_ANCHORS, tourAnchor } from "../../../tour/anchors";
@@ -26,9 +30,7 @@ export function KaraokePage() {
     useProject();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const [messageTone, setMessageTone] = useState<"success" | "error">(
-    "success",
-  );
+  const [messageTone, setMessageTone] = useState<MessageTone>("success");
   const [singingOpen, setSingingOpen] = useState(false);
   const videos = useMemo(
     () =>
@@ -71,7 +73,7 @@ export function KaraokePage() {
         new Date(left.createdAt).getTime(),
     )[0];
 
-  function showMessage(text: string, tone: "success" | "error" = "success") {
+  function showMessage(text: string, tone: MessageTone = "success") {
     setMessage(text);
     setMessageTone(tone);
   }
@@ -217,7 +219,11 @@ export function KaraokePage() {
 
       <Notice
         message={statusMessage}
-        tone={failed ? "error" : processing ? "success" : messageTone}
+        tone={resolveNoticeTone(messageTone, {
+          failed,
+          active: processing,
+          activeTone: "success",
+        })}
       />
 
       <section className="grid gap-5 xl:grid-cols-2">

@@ -1,5 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Project } from "@/shared/types/domain";
 import { TourProvider } from "./TourProvider";
@@ -27,8 +27,10 @@ vi.mock("../features/projects/hooks/useProjects", () => ({
 vi.mock("./tourRunner", () => ({ runMicroTour: run }));
 
 let tour: TourContextValue;
+let navigateTo: (path: string) => void;
 function Probe() {
   tour = useTour();
+  navigateTo = useNavigate();
   return <output data-testid="path">{useLocation().pathname}</output>;
 }
 
@@ -149,6 +151,65 @@ describe("TourProvider", () => {
     expect(screen.getByTestId("path")).toHaveTextContent("/projects");
     expect(run.mock.calls[0][0][0].target).toBe("new-project");
     expect(tour.notices[0].message).toMatch(/Primero crea un proyecto/);
+  });
+
+  it("toasts create-project when a first-time user lands on the new project", () => {
+    const { rerender } = render(tree("/projects"));
+    expect(tour.notices).toEqual([]);
+    setProjects([project("p1")]);
+    act(() => navigateTo("/projects/p1"));
+    rerender(tree("/projects"));
+    act(() => tour.reportProject({ projectId: "p1", snapshot: {} }));
+    expect(tour.progress?.completed).toEqual(["create-project"]);
+    expect(tour.notices.map((notice) => notice.message)).toEqual([
+      "Listo, ya tienes un proyecto.",
+      "Siguiente paso: Sube un video.",
+    ]);
+  });
+
+  it("stays silent for finished work in a project opened for the first time", () => {
+    setProjects([project("p1")]);
+    const { rerender } = render(tree("/dashboard"));
+    act(() => navigateTo("/projects/p1"));
+    rerender(tree("/dashboard"));
+    act(() =>
+      tour.reportProject({
+        projectId: "p1",
+        snapshot: { videoCount: 1, karaokeReady: true },
+      }),
+    );
+    expect(tour.progress?.completed).toEqual([
+      "create-project",
+      "upload-video",
+      "create-karaoke",
+    ]);
+    expect(tour.notices).toEqual([]);
+  });
+
+  it("clears notices and the active tour when the user changes", () => {
+    const dispose = vi.fn();
+    run.mockReturnValueOnce(dispose);
+    const { rerender } = render(tree());
+    act(() => tour.startMission("upload-video"));
+    expect(tour.notices).toHaveLength(1);
+    expect(tour.activeMissionId).toBe("create-project");
+    auth.user = { id: "u2" };
+    rerender(tree());
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(tour.notices).toEqual([]);
+    expect(tour.activeMissionId).toBeNull();
+  });
+
+  it("ends the tour when leaving its page", () => {
+    const dispose = vi.fn();
+    run.mockReturnValueOnce(dispose);
+    setProjects([project("p1")]);
+    render(tree());
+    act(() => tour.startMission("upload-video"));
+    expect(tour.activeMissionId).toBe("upload-video");
+    act(() => navigateTo("/dashboard"));
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(tour.activeMissionId).toBeNull();
   });
 
   it("runs one tour at a time and disposes it on unmount", () => {

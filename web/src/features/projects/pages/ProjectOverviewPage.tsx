@@ -17,6 +17,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../app/providers/AuthProvider";
 import { Button } from "../../../components/ui/Button";
 import { Notice } from "../../../components/ui/Notice";
+import type { MessageTone } from "../../../shared/lib/notice-tone";
 import { TOUR_ANCHORS, tourAnchor } from "../../../tour/anchors";
 import { FileUpload } from "../../media/components/FileUpload";
 import { useProject } from "../context/ProjectContext";
@@ -70,9 +71,7 @@ export function ProjectOverviewPage() {
   const { api } = useAuth();
   const navigate = useNavigate();
   const [message, setMessage] = useState("");
-  const [messageTone, setMessageTone] = useState<"success" | "error">(
-    "success",
-  );
+  const [messageTone, setMessageTone] = useState<MessageTone>("success");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [savingCover, setSavingCover] = useState(false);
@@ -91,7 +90,7 @@ export function ProjectOverviewPage() {
     (asset) => asset.origin === "GENERATED",
   ).length;
 
-  function showMessage(text: string, tone: "success" | "error" = "success") {
+  function showMessage(text: string, tone: MessageTone = "success") {
     setMessage(text);
     setMessageTone(tone);
   }

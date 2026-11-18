@@ -10,14 +10,13 @@ import {
   MUSIC_FILE_ACCEPT,
   VIDEO_FILE_ACCEPT,
 } from "../../../shared/media/asset-files";
+import type { MessageTone } from "../../../shared/lib/notice-tone";
 import type { MediaAssetKind } from "../../../shared/types/domain";
 
 export function FilesPage() {
   const { project, uploadFile, downloadAsset, deleteAsset } = useProject();
   const [message, setMessage] = useState("");
-  const [messageTone, setMessageTone] = useState<"success" | "error">(
-    "success",
-  );
+  const [messageTone, setMessageTone] = useState<MessageTone>("success");
   const assets = project.mediaAssets || [];
   const uploadedAssets = assets.filter(
     (asset) =>
@@ -27,7 +26,7 @@ export function FilesPage() {
     (asset) => asset.origin === "GENERATED",
   );
 
-  function showMessage(text: string, tone: "success" | "error" = "success") {
+  function showMessage(text: string, tone: MessageTone = "success") {
     setMessage(text);
     setMessageTone(tone);
   }

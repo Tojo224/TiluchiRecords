@@ -10,11 +10,11 @@ const snap = (patch: Partial<TourSnapshot>): TourSnapshot => ({
 });
 
 describe("reconcileProgress", () => {
-  it("records existing work silently on baseline", () => {
+  it("records existing work silently on the full baseline", () => {
     const result = reconcileProgress(
       base,
       snap({ projectCount: 2, videoCount: 1 }),
-      { baseline: true },
+      { baseline: "all" },
     );
     expect(result.progress.completed).toEqual([
       "create-project",
@@ -23,9 +23,23 @@ describe("reconcileProgress", () => {
     expect(result.newlyCompleted).toEqual([]);
   });
 
+  it("silences only project-derived missions on the project baseline", () => {
+    const result = reconcileProgress(
+      base,
+      snap({ projectCount: 1, videoCount: 1, audioCount: 1 }),
+      { baseline: "project" },
+    );
+    expect(result.progress.completed).toEqual([
+      "create-project",
+      "upload-video",
+      "upload-music",
+    ]);
+    expect(result.newlyCompleted).toEqual(["create-project"]);
+  });
+
   it("reports newly completed missions after the baseline", () => {
     const result = reconcileProgress(base, snap({ projectCount: 1 }), {
-      baseline: false,
+      baseline: "none",
     });
     expect(result.progress.completed).toEqual(["create-project"]);
     expect(result.newlyCompleted).toEqual(["create-project"]);
@@ -33,12 +47,12 @@ describe("reconcileProgress", () => {
 
   it("is idempotent and keeps the same object when nothing changed", () => {
     const first = reconcileProgress(base, snap({ projectCount: 1 }), {
-      baseline: false,
+      baseline: "none",
     });
     const second = reconcileProgress(
       first.progress,
       snap({ projectCount: 1 }),
-      { baseline: false },
+      { baseline: "none" },
     );
     expect(second.progress).toBe(first.progress);
     expect(second.newlyCompleted).toEqual([]);
@@ -47,7 +61,7 @@ describe("reconcileProgress", () => {
   it("never un-completes a mission", () => {
     const done: TourProgress = { ...base, completed: ["upload-video"] };
     const result = reconcileProgress(done, EMPTY_TOUR_SNAPSHOT, {
-      baseline: false,
+      baseline: "none",
     });
     expect(result.progress.completed).toEqual(["upload-video"]);
     expect(result.newlyCompleted).toEqual([]);

@@ -10,7 +10,7 @@ import { useLocation, useMatch, useNavigate } from "react-router-dom";
 import { useAuth } from "../app/providers/AuthProvider";
 import { useProjects } from "../features/projects/hooks/useProjects";
 import { MISSIONS, missionProgress, nextMission } from "./missions";
-import { reconcileProgress } from "./progress";
+import { reconcileProgress, type BaselineScope } from "./progress";
 import {
   EMPTY_TOUR_SNAPSHOT,
   mergeSnapshot,
@@ -80,11 +80,22 @@ export function TourProvider({ children }: { children: ReactNode }) {
 
   const progress = store && store.userId === userId ? store.progress : null;
 
-  // Load stored progress only after the user is known.
+  const stopTour = useCallback(() => {
+    disposeTour.current?.();
+    disposeTour.current = null;
+    tourRoute.current = null;
+    setActiveMissionId(null);
+  }, []);
+
+  // Load stored progress only after the user is known; a user change also
+  // drops everything that belonged to the previous user.
   useEffect(() => {
     baselineDone.current = false;
     seenProjects.current.clear();
     lastEval.current = undefined;
+    stopTour();
+    setNotices((current) => (current.length ? [] : current));
+    setReport(null);
     if (!userId) {
       setStore(null);
       return;
@@ -92,7 +103,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
     const loaded = loadProgress(userId);
     persistedRef.current = loaded;
     setStore({ userId, progress: loaded });
-  }, [userId]);
+  }, [userId, stopTour]);
 
   useEffect(() => {
     if (!userId || !progress || persistedRef.current === progress) return;
@@ -149,9 +160,14 @@ export function TourProvider({ children }: { children: ReactNode }) {
       return;
     }
     lastEval.current = { progress, snapshot };
-    const baseline =
-      !baselineDone.current ||
-      (routeProjectId !== null && !seenProjects.current.has(routeProjectId));
+    // First evaluation: everything pre-existing is silent. A first visit to a
+    // project only silences its own work; a global completion (a project
+    // created after the baseline) still gets its toast.
+    const baseline: BaselineScope = !baselineDone.current
+      ? "all"
+      : routeProjectId !== null && !seenProjects.current.has(routeProjectId)
+        ? "project"
+        : "none";
     baselineDone.current = true;
     if (routeProjectId) seenProjects.current.add(routeProjectId);
 
@@ -182,13 +198,6 @@ export function TourProvider({ children }: { children: ReactNode }) {
         : []),
     ]);
   }, [ready, progress, snapshot, routeProjectId, updateProgress, pushNotices]);
-
-  const stopTour = useCallback(() => {
-    disposeTour.current?.();
-    disposeTour.current = null;
-    tourRoute.current = null;
-    setActiveMissionId(null);
-  }, []);
 
   // One tour at a time: leaving the tour's page or unmounting ends it.
   useEffect(() => {
