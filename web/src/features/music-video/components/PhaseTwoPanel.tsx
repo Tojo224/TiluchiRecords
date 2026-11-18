@@ -1,5 +1,6 @@
 import { CheckCircle2, Film } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { DisabledReason } from "@/components/ui/DisabledReason";
 import { JobProgress } from "@/components/ui/JobProgress";
 import { Panel } from "@/components/ui/Panel";
 import { clipStageLabel } from "../lib/scene-labels";
@@ -10,7 +11,7 @@ type PhaseTwoPanelProps = {
   clipRunning: boolean;
   composeRunning: boolean;
   progress: number;
-  disabled: boolean;
+  blockers: string[];
   onProduce: () => void;
 };
 
@@ -19,7 +20,7 @@ export function PhaseTwoPanel({
   clipRunning,
   composeRunning,
   progress,
-  disabled,
+  blockers,
   onProduce,
 }: PhaseTwoPanelProps) {
   return (
@@ -83,7 +84,11 @@ export function PhaseTwoPanel({
             ? "Revisa el plan de escenas de abajo. Cuando estes conforme, inicia la produccion."
             : "Esta fase se habilitara cuando el plan de escenas este listo."}
         </div>
-        <Button onClick={onProduce} disabled={disabled}>
+        <Button
+          onClick={onProduce}
+          disabled={blockers.length > 0}
+          aria-describedby={blockers.length ? "produce-blockers" : undefined}
+        >
           <Film size={17} />
           {clipRunning
             ? `Generando clips ${state.clipJob?.progress || 0}%`
@@ -93,6 +98,7 @@ export function PhaseTwoPanel({
                 ? "Generar nuevamente"
                 : "Generar videoclip"}
         </Button>
+        <DisabledReason id="produce-blockers" reasons={blockers} />
       </div>
     </Panel>
   );

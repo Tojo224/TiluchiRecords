@@ -1,5 +1,6 @@
 import { Play, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { DisabledReason } from "@/components/ui/DisabledReason";
 import { JobProgress } from "@/components/ui/JobProgress";
 import { Panel } from "@/components/ui/Panel";
 
@@ -8,7 +9,7 @@ type ConsentPanelProps = {
   swapRunning: boolean;
   swapProgress: number;
   selectedCount: number;
-  runDisabled: boolean;
+  blockers: string[];
   onConsentChange: (consent: boolean) => void;
   onRun: () => void;
 };
@@ -18,7 +19,7 @@ export function ConsentPanel({
   swapRunning,
   swapProgress,
   selectedCount,
-  runDisabled,
+  blockers,
   onConsentChange,
   onRun,
 }: ConsentPanelProps) {
@@ -53,12 +54,22 @@ export function ConsentPanel({
             />
           </div>
         )}
-        <Button className="min-w-52" onClick={onRun} disabled={runDisabled}>
-          <Play size={17} />
-          {selectedCount > 1
-            ? `Reemplazar ${selectedCount} personas`
-            : "Iniciar reemplazo"}
-        </Button>
+        <div className="grid gap-2 lg:justify-items-end">
+          <Button
+            className="min-w-52"
+            onClick={onRun}
+            disabled={blockers.length > 0}
+            aria-describedby={
+              blockers.length ? "face-swap-blockers" : undefined
+            }
+          >
+            <Play size={17} />
+            {selectedCount > 1
+              ? `Reemplazar ${selectedCount} personas`
+              : "Iniciar reemplazo"}
+          </Button>
+          <DisabledReason id="face-swap-blockers" reasons={blockers} />
+        </div>
       </div>
     </Panel>
   );

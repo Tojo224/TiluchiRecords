@@ -69,6 +69,9 @@ export function ProjectOverviewPage() {
   const { api } = useAuth();
   const navigate = useNavigate();
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState<"success" | "error">(
+    "success",
+  );
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [savingCover, setSavingCover] = useState(false);
@@ -87,6 +90,11 @@ export function ProjectOverviewPage() {
     (asset) => asset.origin === "GENERATED",
   ).length;
 
+  function showMessage(text: string, tone: "success" | "error" = "success") {
+    setMessage(text);
+    setMessageTone(tone);
+  }
+
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -101,9 +109,9 @@ export function ProjectOverviewPage() {
         }),
       });
       await refresh();
-      setMessage("Proyecto actualizado correctamente.");
+      showMessage("Proyecto actualizado correctamente.");
     } catch (error) {
-      setMessage((error as Error).message);
+      showMessage((error as Error).message, "error");
     } finally {
       setSaving(false);
     }
@@ -118,7 +126,7 @@ export function ProjectOverviewPage() {
       await api(`/projects/${project.id}`, { method: "DELETE" });
       navigate("/projects");
     } catch (error) {
-      setMessage((error as Error).message);
+      showMessage((error as Error).message, "error");
       setDeleting(false);
     }
   }
@@ -134,9 +142,9 @@ export function ProjectOverviewPage() {
         await deleteAsset(previousCoverId).catch(() => undefined);
       }
       await refresh();
-      setMessage("Portada actualizada correctamente.");
+      showMessage("Portada actualizada correctamente.");
     } catch (error) {
-      setMessage((error as Error).message);
+      showMessage((error as Error).message, "error");
     } finally {
       setSavingCover(false);
     }
@@ -161,10 +169,7 @@ export function ProjectOverviewPage() {
         </Link>
       </header>
 
-      <Notice
-        message={message}
-        tone={message.includes("correctamente") ? "success" : "error"}
-      />
+      <Notice message={message} tone={messageTone} />
 
       <section
         className="grid gap-4 md:grid-cols-3"

@@ -19,6 +19,7 @@ import { SectionHeading } from "../components/SectionHeading";
 import { SourceImagePanel } from "../components/SourceImagePanel";
 import { TargetVideoPanel } from "../components/TargetVideoPanel";
 import {
+  getFaceSwapBlockers,
   sameIdentitySelection,
   type FaceIdentity,
 } from "../lib/face-swap-state";
@@ -105,6 +106,17 @@ export function FaceSwapPage() {
       asset.status === "READY" &&
       asset.metadata?.sourceJobId === faceSwapJob?.id,
   );
+
+  const blockers = getFaceSwapBlockers({
+    hasImage: Boolean(image),
+    hasVideo: Boolean(video),
+    busy,
+    analysisRunning,
+    swapRunning,
+    identityCount: identities.length,
+    selectedCount: selectedIdentityIds.length,
+    consent,
+  });
 
   useEffect(() => {
     setSelectedIdentityIds([]);
@@ -325,15 +337,7 @@ export function FaceSwapPage() {
         swapRunning={swapRunning}
         swapProgress={faceSwapJob?.progress || 0}
         selectedCount={selectedIdentityIds.length}
-        runDisabled={
-          busy ||
-          analysisRunning ||
-          swapRunning ||
-          !image ||
-          !video ||
-          selectedIdentityIds.length === 0 ||
-          !consent
-        }
+        blockers={blockers}
         onConsentChange={setConsent}
         onRun={run}
       />

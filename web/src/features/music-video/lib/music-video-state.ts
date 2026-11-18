@@ -1,3 +1,4 @@
+import { BUSY_REASON } from "@/shared/lib/blockers";
 import { selectJobForType } from "@/features/jobs/hooks/useJobForType";
 import type { Job, MediaAsset, StoryboardScene } from "@/shared/types/domain";
 
@@ -65,6 +66,40 @@ export function deriveMusicVideoState(
       ? storyboard.result.scenes
       : []) as StoryboardScene[],
   };
+}
+
+/** Requirements still missing before "Analizar y crear plan" can be used. */
+export function getPlanBlockers({
+  hasAudio,
+  hasPrompt,
+  busy,
+}: {
+  hasAudio: boolean;
+  hasPrompt: boolean;
+  busy: boolean;
+}): string[] {
+  const blockers: string[] = [];
+  if (busy) blockers.push(BUSY_REASON);
+  if (!hasAudio) blockers.push("subir o seleccionar una pieza musical");
+  if (!hasPrompt) blockers.push("escribir la direccion visual");
+  return blockers;
+}
+
+/** Requirements still missing before "Generar videoclip" can be used. */
+export function getProduceBlockers({
+  hasStoryboard,
+  hasAudio,
+  busy,
+}: {
+  hasStoryboard: boolean;
+  hasAudio: boolean;
+  busy: boolean;
+}): string[] {
+  const blockers: string[] = [];
+  if (busy) blockers.push(BUSY_REASON);
+  if (!hasStoryboard) blockers.push("crear el plan de escenas en la Fase 1");
+  if (!hasAudio) blockers.push("subir o seleccionar una pieza musical");
+  return blockers;
 }
 
 export type MusicVideoState = ReturnType<typeof deriveMusicVideoState>;

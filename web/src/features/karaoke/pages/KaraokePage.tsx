@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "../../../components/ui/Button";
+import { DisabledReason } from "../../../components/ui/DisabledReason";
 import { Notice } from "../../../components/ui/Notice";
 import { FileUpload } from "../../media/components/FileUpload";
 import { MediaPlayer } from "../../media/components/MediaPlayer";
@@ -17,12 +18,16 @@ import { VIDEO_FILE_ACCEPT } from "../../../shared/media/asset-files";
 import type { MediaAsset } from "../../../shared/types/domain";
 import { useProject } from "../../projects/context/ProjectContext";
 import { KaraokeSingingModal } from "../components/KaraokeSingingModal";
+import { getKaraokeBlockers } from "../lib/karaoke-state";
 
 export function KaraokePage() {
   const { project, assetUrls, uploadFile, createJob, downloadAsset } =
     useProject();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState<"success" | "error">(
+    "success",
+  );
   const [singingOpen, setSingingOpen] = useState(false);
   const videos = useMemo(
     () =>
@@ -65,24 +70,30 @@ export function KaraokePage() {
         new Date(left.createdAt).getTime(),
     )[0];
 
+  function showMessage(text: string, tone: "success" | "error" = "success") {
+    setMessage(text);
+    setMessageTone(tone);
+  }
+
   async function upload(file: File) {
     try {
       const asset = await uploadFile(file, file.name, "ORIGINAL_VIDEO");
       setVideoId(asset.id);
-      setMessage("Video subido correctamente.");
+      showMessage("Video subido correctamente.");
     } catch (error) {
-      setMessage((error as Error).message);
+      showMessage((error as Error).message, "error");
     }
   }
 
   async function generate() {
-    if (!video) return setMessage("Selecciona primero un video con musica.");
+    if (!video)
+      return showMessage("Selecciona primero un video con musica.", "error");
     setBusy(true);
     try {
       await createJob("GENERATE_KARAOKE", { videoAssetId: video.id });
-      setMessage("Generacion de karaoke iniciada.");
+      showMessage("Generacion de karaoke iniciada.");
     } catch (error) {
-      setMessage((error as Error).message);
+      showMessage((error as Error).message, "error");
     } finally {
       setBusy(false);
     }
@@ -101,9 +112,13 @@ export function KaraokePage() {
       "KARAOKE_PERFORMANCE_VIDEO",
       durationSeconds,
     );
-    setMessage(`Interpretacion "${name}" guardada correctamente.`);
+    showMessage(`Interpretacion "${name}" guardada correctamente.`);
   }
 
+  const blockers = getKaraokeBlockers({
+    hasVideo: Boolean(video),
+    busy: busy || processing,
+  });
   const stage = karaokeStage(karaokeJob?.result?.stage);
   const statusMessage = failed
     ? friendlyKaraokeError(karaokeJob?.errorMessage)
@@ -150,7 +165,10 @@ export function KaraokePage() {
           <div>
             <Button
               onClick={generate}
-              disabled={busy || processing || !video}
+              disabled={blockers.length > 0}
+              aria-describedby={
+                blockers.length ? "karaoke-blockers" : undefined
+              }
               className="min-h-14 w-full justify-between bg-emerald-600 px-5 text-base text-white shadow-lg shadow-emerald-600/15 hover:bg-emerald-700 dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400"
             >
               <span className="flex items-center gap-3">
@@ -159,6 +177,11 @@ export function KaraokePage() {
               </span>
               <ArrowRight size={21} />
             </Button>
+            <DisabledReason
+              id="karaoke-blockers"
+              reasons={blockers}
+              className="mt-3"
+            />
             <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
               Se generara una version instrumental con la letra sincronizada en
               pantalla.
@@ -191,11 +214,7 @@ export function KaraokePage() {
 
       <Notice
         message={statusMessage}
-        tone={
-          failed || (!message.includes("correctamente") && !processing)
-            ? "error"
-            : "success"
-        }
+        tone={failed ? "error" : processing ? "success" : messageTone}
       />
 
       <section className="grid gap-5 xl:grid-cols-2">

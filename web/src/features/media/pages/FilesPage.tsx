@@ -15,6 +15,9 @@ import type { MediaAssetKind } from "../../../shared/types/domain";
 export function FilesPage() {
   const { project, uploadFile, downloadAsset, deleteAsset } = useProject();
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState<"success" | "error">(
+    "success",
+  );
   const assets = project.mediaAssets || [];
   const uploadedAssets = assets.filter(
     (asset) =>
@@ -24,12 +27,17 @@ export function FilesPage() {
     (asset) => asset.origin === "GENERATED",
   );
 
+  function showMessage(text: string, tone: "success" | "error" = "success") {
+    setMessage(text);
+    setMessageTone(tone);
+  }
+
   async function upload(file: File, kind: MediaAssetKind, label: string) {
     try {
       await uploadFile(file, file.name, kind);
-      setMessage(`${label} subido correctamente.`);
+      showMessage(`${label} subido correctamente.`);
     } catch (error) {
-      setMessage((error as Error).message);
+      showMessage((error as Error).message, "error");
     }
   }
 
@@ -37,9 +45,9 @@ export function FilesPage() {
     if (!window.confirm("Eliminar este archivo?")) return;
     try {
       await deleteAsset(id);
-      setMessage("Archivo eliminado correctamente.");
+      showMessage("Archivo eliminado correctamente.");
     } catch (error) {
-      setMessage((error as Error).message);
+      showMessage((error as Error).message, "error");
     }
   }
 
@@ -84,10 +92,7 @@ export function FilesPage() {
         </div>
       </section>
 
-      <Notice
-        message={message}
-        tone={message.includes("correctamente") ? "success" : "error"}
-      />
+      <Notice message={message} tone={messageTone} />
 
       <section className="overflow-hidden rounded-lg border border-emerald-200 bg-white shadow-sm dark:border-emerald-500/25 dark:bg-[#0b171c] dark:shadow-black/20">
         <header className="flex flex-wrap items-center justify-between gap-4 px-5 py-5 sm:px-6">

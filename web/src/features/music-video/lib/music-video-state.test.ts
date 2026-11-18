@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { Job, MediaAsset } from "@/shared/types/domain";
-import { deriveMusicVideoState } from "./music-video-state";
+import { BUSY_REASON } from "@/shared/lib/blockers";
+import {
+  deriveMusicVideoState,
+  getPlanBlockers,
+  getProduceBlockers,
+} from "./music-video-state";
 
 function makeJob(overrides: Partial<Job> & Pick<Job, "id" | "type">): Job {
   return {
@@ -30,6 +35,57 @@ function makeAsset(
     ...overrides,
   };
 }
+
+describe("getPlanBlockers", () => {
+  it("returns no blockers when music and direction are present", () => {
+    expect(
+      getPlanBlockers({ hasAudio: true, hasPrompt: true, busy: false }),
+    ).toEqual([]);
+  });
+
+  it("lists missing music and visual direction", () => {
+    expect(
+      getPlanBlockers({ hasAudio: false, hasPrompt: false, busy: false }),
+    ).toEqual([
+      "subir o seleccionar una pieza musical",
+      "escribir la direccion visual",
+    ]);
+  });
+
+  it("reports a running process", () => {
+    expect(
+      getPlanBlockers({ hasAudio: true, hasPrompt: true, busy: true }),
+    ).toEqual([BUSY_REASON]);
+  });
+});
+
+describe("getProduceBlockers", () => {
+  it("returns no blockers when the plan and music are ready", () => {
+    expect(
+      getProduceBlockers({ hasStoryboard: true, hasAudio: true, busy: false }),
+    ).toEqual([]);
+  });
+
+  it("asks for the scene plan first", () => {
+    expect(
+      getProduceBlockers({
+        hasStoryboard: false,
+        hasAudio: true,
+        busy: false,
+      }),
+    ).toEqual(["crear el plan de escenas en la Fase 1"]);
+  });
+
+  it("lists every unmet requirement", () => {
+    expect(
+      getProduceBlockers({
+        hasStoryboard: false,
+        hasAudio: false,
+        busy: true,
+      }),
+    ).toHaveLength(3);
+  });
+});
 
 describe("deriveMusicVideoState", () => {
   it("returns an empty state without jobs or assets", () => {

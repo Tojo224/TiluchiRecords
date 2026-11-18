@@ -1,6 +1,7 @@
 import { CheckCircle2, Music, Play } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../../../components/ui/Button";
+import { DisabledReason } from "../../../components/ui/DisabledReason";
 import { Notice } from "../../../components/ui/Notice";
 import { PageHeader } from "../../../components/ui/PageHeader";
 import { Panel } from "../../../components/ui/Panel";
@@ -15,7 +16,11 @@ import { getJobFlags } from "../../jobs/hooks/useJobForType";
 import { useProject } from "../../projects/context/ProjectContext";
 import { PhaseTwoPanel } from "../components/PhaseTwoPanel";
 import { SceneList } from "../components/SceneList";
-import { deriveMusicVideoState } from "../lib/music-video-state";
+import {
+  deriveMusicVideoState,
+  getPlanBlockers,
+  getProduceBlockers,
+} from "../lib/music-video-state";
 import { clipStageLabel } from "../lib/scene-labels";
 
 export function MusicVideoPage() {
@@ -64,6 +69,18 @@ export function MusicVideoPage() {
     state.composeJob,
   );
   const autoStarted = useRef(new Set<string>());
+  const anyJobRunning =
+    analysisRunning || storyboardRunning || clipRunning || composeRunning;
+  const planBlockers = getPlanBlockers({
+    hasAudio: Boolean(audio),
+    hasPrompt: Boolean(prompt.trim()),
+    busy: busy || anyJobRunning,
+  });
+  const produceBlockers = getProduceBlockers({
+    hasStoryboard: Boolean(state.storyboard),
+    hasAudio: Boolean(audio),
+    busy: busy || anyJobRunning,
+  });
 
   useActiveJobPolling(
     retainFastPolling,
@@ -321,14 +338,9 @@ export function MusicVideoPage() {
             )}
             <Button
               onClick={preparePlan}
-              disabled={
-                busy ||
-                analysisRunning ||
-                storyboardRunning ||
-                clipRunning ||
-                composeRunning ||
-                !audio ||
-                !prompt.trim()
+              disabled={planBlockers.length > 0}
+              aria-describedby={
+                planBlockers.length ? "plan-blockers" : undefined
               }
             >
               <Play size={17} />
@@ -340,6 +352,7 @@ export function MusicVideoPage() {
                     ? "Crear un nuevo plan"
                     : "Analizar y crear plan"}
             </Button>
+            <DisabledReason id="plan-blockers" reasons={planBlockers} />
           </div>
         </Panel>
 
@@ -348,15 +361,7 @@ export function MusicVideoPage() {
           clipRunning={clipRunning}
           composeRunning={composeRunning}
           progress={phaseTwoProgress}
-          disabled={
-            busy ||
-            analysisRunning ||
-            storyboardRunning ||
-            clipRunning ||
-            composeRunning ||
-            !state.storyboard ||
-            !audio
-          }
+          blockers={produceBlockers}
           onProduce={produceVideo}
         />
       </section>
