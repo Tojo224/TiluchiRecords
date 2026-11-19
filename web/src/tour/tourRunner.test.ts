@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { driver } from "driver.js";
+import { driver, type PopoverDOM } from "driver.js";
 import { TOUR_ANCHORS } from "./anchors";
 import type { TourStep } from "./steps";
 import { runMicroTour as run, type RunMicroTourOptions } from "./tourRunner";
@@ -168,5 +168,72 @@ describe("runMicroTour", () => {
     dispose();
     firstConfig()?.onDestroyed?.(undefined, {}, {} as never);
     expect(onDestroy).not.toHaveBeenCalled();
+  });
+
+  describe("step guide block", () => {
+    function popoverDom() {
+      const wrapper = document.createElement("div");
+      const description = document.createElement("div");
+      const footer = document.createElement("div");
+      wrapper.append(description, footer);
+      document.body.appendChild(wrapper);
+      return { wrapper, description, footer } as unknown as PopoverDOM;
+    }
+
+    function render(guided: TourStep, popover: PopoverDOM) {
+      addAnchor();
+      runMicroTour([guided]);
+      const hook = firstConfig()?.steps?.[0]?.popover?.onPopoverRender;
+      hook?.(popover, {} as never);
+    }
+
+    it("renders action and fields with DOM nodes and textContent", () => {
+      const popover = popoverDom();
+      render(
+        {
+          ...step,
+          action: 'Pulsa "Subir video".',
+          fields: [
+            {
+              label: "Campo",
+              value: "<img src=x onerror=alert(1)>",
+              required: true,
+              note: "maximo 5",
+            },
+            { label: "Otro", value: "algo", required: false },
+          ],
+        },
+        popover,
+      );
+      const guide = popover.wrapper.querySelector(".tiluchi-tour-guide");
+      expect(guide?.textContent).toContain('Que hacer: Pulsa "Subir video".');
+      expect(guide?.textContent).toContain("Obligatorio");
+      expect(guide?.textContent).toContain("Opcional");
+      expect(guide?.textContent).toContain("(maximo 5)");
+      expect(guide?.querySelector("img")).toBeNull();
+      expect(guide?.textContent).toContain("<img src=x");
+      expect(popover.description.nextElementSibling).toBe(guide);
+    });
+
+    it("is idempotent when the popover re-renders and keeps the exit button", () => {
+      const popover = popoverDom();
+      const guided = { ...step, action: "Haz algo." };
+      render(guided, popover);
+      const hook = firstConfig()?.steps?.[0]?.popover?.onPopoverRender;
+      hook?.(popover, {} as never);
+      expect(
+        popover.wrapper.querySelectorAll(".tiluchi-tour-guide"),
+      ).toHaveLength(1);
+      expect(popover.footer.querySelectorAll("[data-tour-exit]")).toHaveLength(
+        1,
+      );
+    });
+
+    it("renders nothing without action or fields", () => {
+      const popover = popoverDom();
+      render(step, popover);
+      expect(popover.wrapper.querySelector(".tiluchi-tour-guide")).toBeNull();
+      expect(popover.footer.querySelector("[data-tour-exit]")).not.toBeNull();
+    });
   });
 });

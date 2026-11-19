@@ -93,6 +93,45 @@
   text-shadow: none;
 }
 
+.driver-popover.tiluchi-tour-popover .tiluchi-tour-guide {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.375rem;
+  background-color: #ecfdf5;
+  color: #14532d;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.driver-popover.tiluchi-tour-popover .tiluchi-tour-action {
+  margin: 0;
+}
+
+.driver-popover.tiluchi-tour-popover .tiluchi-tour-fields {
+  margin: 0.375rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.driver-popover.tiluchi-tour-popover .tiluchi-tour-fields li + li {
+  margin-top: 0.375rem;
+}
+
+.driver-popover.tiluchi-tour-popover .tiluchi-tour-badge {
+  display: inline-block;
+  padding: 0 0.375rem;
+  border-radius: 999px;
+  background-color: #e4e4e7;
+  color: #3f3f46;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.driver-popover.tiluchi-tour-popover .tiluchi-tour-badge-required {
+  background-color: #14532d;
+  color: #ffffff;
+}
+
 .dark .driver-popover.tiluchi-tour-popover {
   background-color: #0b171c;
   color: #f4f4f5;
@@ -145,4 +184,19 @@
 
 .dark .driver-popover.tiluchi-tour-popover .driver-popover-arrow-side-right {
   border-right-color: #0b171c;
+}
+
+.dark .driver-popover.tiluchi-tour-popover .tiluchi-tour-guide {
+  background-color: rgb(16 185 129 / 0.12);
+  color: #d1fae5;
+}
+
+.dark .driver-popover.tiluchi-tour-popover .tiluchi-tour-badge {
+  background-color: #3f3f46;
+  color: #e4e4e7;
+}
+
+.dark .driver-popover.tiluchi-tour-popover .tiluchi-tour-badge-required {
+  background-color: #34d399;
+  color: #052e16;
 }

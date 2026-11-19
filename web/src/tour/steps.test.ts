@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import modalSource from "../features/karaoke/components/KaraokeSingingModal.tsx?raw";
 import { TOUR_ANCHORS } from "./anchors";
+import { UI_LABELS } from "./ui-labels";
 import { MISSIONS } from "./missions";
 import {
   MISSION_STEPS,
@@ -62,6 +63,55 @@ describe("mission steps", () => {
   it("never targets anything inside the singing modal", () => {
     expect(modalSource).not.toContain("data-tour");
     expect(modalSource).not.toContain("tourAnchor");
+  });
+
+  it("tells the user what to do in every step", () => {
+    for (const step of allSteps) {
+      expect(Boolean(step.action) || Boolean(step.fields?.length)).toBe(true);
+      for (const field of step.fields ?? []) {
+        expect(field.label.length).toBeGreaterThan(0);
+        expect(field.value.length).toBeGreaterThan(0);
+        expect(typeof field.required).toBe("boolean");
+      }
+    }
+  });
+
+  it("describes the prompt field with its real label and limit", () => {
+    const [prompt] = stepsForMission("create-plan");
+    expect(prompt.fields?.[0]).toMatchObject({
+      label: UI_LABELS.visualDirection,
+      required: true,
+    });
+    expect(prompt.fields?.[0].note).toMatch(/500/);
+    expect(prompt.fields?.[0].value).toContain(UI_LABELS.suggestedStyles);
+  });
+
+  it("explains the singing modal flow in text", () => {
+    const [sing] = stepsForMission("sing-karaoke");
+    for (const text of [
+      UI_LABELS.startSinging,
+      "microfono",
+      UI_LABELS.saveRecording,
+    ]) {
+      expect(sing.description).toContain(text);
+    }
+  });
+
+  it("points to the Falta line on steps with a blockable button", () => {
+    for (const id of [
+      "create-karaoke",
+      "create-plan",
+      "generate-videoclip",
+      "face-swap",
+    ]) {
+      const blocked = stepsForMission(id).filter((s) =>
+        /boton esta desactivado/.test(s.description),
+      );
+      expect(blocked.length).toBeGreaterThan(0);
+      for (const step of blocked) {
+        expect(step.description).toContain(UI_LABELS.missingPrefix);
+      }
+    }
   });
 
   it("returns an empty list for unknown missions", () => {
