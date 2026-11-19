@@ -1,5 +1,6 @@
 import { Check } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
+import { TOUR_ANCHORS, tourAnchor } from "@/tour/anchors";
 import type { FaceIdentity } from "../lib/face-swap-state";
 
 type IdentityGridProps = {
@@ -16,7 +17,7 @@ export function IdentityGrid({
   onSelectionChange,
 }: IdentityGridProps) {
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4" {...tourAnchor(TOUR_ANCHORS.faceSwapPeople)}>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
         {identities.map((identity) => {
           const selected = selectedIdentityIds.includes(identity.id);

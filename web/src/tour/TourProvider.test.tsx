@@ -1,6 +1,7 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ToastProvider } from "@/components/ui/Toast";
 import type { Project } from "@/shared/types/domain";
 import { TourProvider } from "./TourProvider";
 import { tourStorageKey } from "./storage";
@@ -43,6 +44,15 @@ function project(id: string): Project {
   };
 }
 
+/** Cards currently shown in the toast viewport. */
+function toastCards() {
+  const region = screen.getByRole("region", { name: "Notificaciones" });
+  return [
+    ...within(region).queryAllByRole("status"),
+    ...within(region).queryAllByRole("alert"),
+  ];
+}
+
 function setProjects(projects: Project[], loading = false) {
   projectsState.value = { ...projectsState.value, projects, loading };
 }
@@ -50,9 +60,11 @@ function setProjects(projects: Project[], loading = false) {
 function tree(path = "/dashboard") {
   return (
     <MemoryRouter initialEntries={[path]}>
-      <TourProvider>
-        <Probe />
-      </TourProvider>
+      <ToastProvider>
+        <TourProvider>
+          <Probe />
+        </TourProvider>
+      </ToastProvider>
     </MemoryRouter>
   );
 }
@@ -73,19 +85,71 @@ describe("TourProvider", () => {
     setProjects([project("p1")]);
     render(tree());
     expect(tour.progress?.completed).toContain("create-project");
-    expect(tour.notices).toEqual([]);
+    expect(toastCards()).toHaveLength(0);
   });
 
-  it("toasts a mission completed after the baseline", () => {
+  it("toasts a completed mission and offers the next step", () => {
     const { rerender } = render(tree());
-    expect(tour.notices).toEqual([]);
+    expect(toastCards()).toHaveLength(0);
     setProjects([project("p1")]);
     rerender(tree());
     expect(tour.progress?.completed).toEqual(["create-project"]);
-    expect(tour.notices.map((notice) => notice.message)).toEqual([
-      "Listo, ya tienes un proyecto.",
-      "Siguiente paso: Sube un video.",
-    ]);
+    expect(toastCards()).toHaveLength(2);
+    const [done, next] = toastCards();
+    expect(done).toHaveTextContent("Paso completado");
+    expect(done).toHaveTextContent("Listo, ya tienes un proyecto.");
+    expect(next).toHaveTextContent("Siguiente paso: Sube un video");
+    expect(next).toHaveTextContent(/Subir video/);
+    fireEvent.click(within(next).getByRole("button", { name: "Mostrarme" }));
+    expect(run.mock.calls[0][0][0].target).toBe("karaoke-dropzone");
+  });
+
+  it("dismisses its toasts when the provider unmounts", () => {
+    const withTour = (show: boolean) => (
+      <MemoryRouter initialEntries={["/dashboard"]}>
+        <ToastProvider>
+          {show && (
+            <TourProvider>
+              <Probe />
+            </TourProvider>
+          )}
+        </ToastProvider>
+      </MemoryRouter>
+    );
+    const { rerender } = render(withTour(true));
+    setProjects([project("p1")]);
+    rerender(withTour(true));
+    expect(toastCards()).toHaveLength(2);
+    rerender(withTour(false));
+    expect(toastCards()).toHaveLength(0);
+  });
+
+  it("replaces earlier tour toasts instead of stacking them", () => {
+    const { rerender } = render(tree("/projects/p1"));
+    act(() => tour.reportProject({ projectId: "p1", snapshot: {} }));
+    setProjects([project("p1")]);
+    rerender(tree("/projects/p1"));
+    act(() =>
+      tour.reportProject({ projectId: "p1", snapshot: { videoCount: 1 } }),
+    );
+    expect(toastCards()).toHaveLength(2);
+    act(() =>
+      tour.reportProject({
+        projectId: "p1",
+        snapshot: { videoCount: 1, karaokeReady: true },
+      }),
+    );
+    expect(toastCards()).toHaveLength(2);
+    expect(screen.getAllByText("Paso completado")).toHaveLength(1);
+  });
+
+  it("stays silent once the guide was dismissed", () => {
+    const { rerender } = render(tree());
+    act(() => tour.dismiss());
+    setProjects([project("p1")]);
+    rerender(tree());
+    expect(tour.progress?.completed).toEqual(["create-project"]);
+    expect(toastCards()).toHaveLength(0);
   });
 
   it("does nothing until the user and the projects are loaded", () => {
@@ -142,7 +206,7 @@ describe("TourProvider", () => {
       "/projects/p1/karaoke",
     );
     expect(run).toHaveBeenCalledTimes(1);
-    expect(run.mock.calls[0][0][0].target).toBe("karaoke-upload");
+    expect(run.mock.calls[0][0][0].target).toBe("karaoke-dropzone");
     expect(tour.activeMissionId).toBe("upload-video");
   });
 
@@ -151,7 +215,7 @@ describe("TourProvider", () => {
     await act(async () => tour.startMission("upload-video"));
     expect(screen.getByTestId("path")).toHaveTextContent("/projects");
     expect(run.mock.calls[0][0][0].target).toBe("new-project");
-    expect(tour.notices[0].message).toMatch(/Primero crea un proyecto/);
+    expect(toastCards()[0]).toHaveTextContent(/Primero crea un proyecto/);
   });
 
   it("uses the last seen project when the list is stale", async () => {
@@ -162,9 +226,7 @@ describe("TourProvider", () => {
     expect(screen.getByTestId("path")).toHaveTextContent(
       "/projects/p9/karaoke",
     );
-    expect(tour.notices.map((notice) => notice.message)).not.toContain(
-      "Primero crea un proyecto para continuar.",
-    );
+    expect(screen.queryByText(/Primero crea un proyecto/)).toBeNull();
     expect(projectsState.value.refresh).not.toHaveBeenCalled();
   });
 
@@ -184,9 +246,9 @@ describe("TourProvider", () => {
     render(tree());
     await act(async () => tour.startMission("sing-karaoke"));
     expect(projectsState.value.refresh).toHaveBeenCalledTimes(1);
-    expect(tour.notices.map((notice) => notice.message)).toContain(
-      "Primero crea un proyecto para continuar.",
-    );
+    expect(
+      screen.getByText("Primero crea un proyecto para continuar."),
+    ).toBeInTheDocument();
   });
 
   it("forgets the last seen project when the user changes", async () => {
@@ -207,10 +269,10 @@ describe("TourProvider", () => {
     });
     expect(run.mock.calls[0][1].waitMs).toBe(5000);
     act(() => run.mock.calls[0][1].onUnavailable());
-    expect(tour.notices.map((notice) => notice.message)).toEqual([
-      expect.stringMatching(/Todavia no podemos mostrar este paso/),
-      "Para cantar primero necesitas un karaoke listo: usa Crear karaoke.",
-    ]);
+    expect(toastCards()).toHaveLength(1);
+    expect(toastCards()[0]).toHaveTextContent(
+      /Todavia no podemos mostrar este paso.*usa Crear karaoke/,
+    );
   });
 
   it("uses only the generic notice when the mission has no hint", () => {
@@ -218,21 +280,25 @@ describe("TourProvider", () => {
     render(tree());
     act(() => tour.startMission("upload-video"));
     act(() => run.mock.calls[0][1].onUnavailable());
-    expect(tour.notices).toHaveLength(1);
+    expect(toastCards()).toHaveLength(1);
+    expect(toastCards()[0]).not.toHaveTextContent("Crear karaoke");
   });
 
   it("toasts create-project when a first-time user lands on the new project", () => {
     const { rerender } = render(tree("/projects"));
-    expect(tour.notices).toEqual([]);
+    expect(toastCards()).toHaveLength(0);
     setProjects([project("p1")]);
     act(() => navigateTo("/projects/p1"));
     rerender(tree("/projects"));
     act(() => tour.reportProject({ projectId: "p1", snapshot: {} }));
     expect(tour.progress?.completed).toEqual(["create-project"]);
-    expect(tour.notices.map((notice) => notice.message)).toEqual([
-      "Listo, ya tienes un proyecto.",
-      "Siguiente paso: Sube un video.",
-    ]);
+    expect(toastCards()).toHaveLength(2);
+    expect(
+      screen.getByText("Listo, ya tienes un proyecto."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Siguiente paso: Sube un video"),
+    ).toBeInTheDocument();
   });
 
   it("stays silent for finished work in a project opened for the first time", () => {
@@ -251,20 +317,20 @@ describe("TourProvider", () => {
       "upload-video",
       "create-karaoke",
     ]);
-    expect(tour.notices).toEqual([]);
+    expect(toastCards()).toHaveLength(0);
   });
 
-  it("clears notices and the active tour when the user changes", async () => {
+  it("clears tour toasts and the active tour when the user changes", async () => {
     const dispose = vi.fn();
     run.mockReturnValueOnce(dispose);
     const { rerender } = render(tree());
     await act(async () => tour.startMission("upload-video"));
-    expect(tour.notices).toHaveLength(1);
+    expect(toastCards()).toHaveLength(1);
     expect(tour.activeMissionId).toBe("create-project");
     auth.user = { id: "u2" };
     rerender(tree());
     expect(dispose).toHaveBeenCalledTimes(1);
-    expect(tour.notices).toEqual([]);
+    expect(toastCards()).toHaveLength(0);
     expect(tour.activeMissionId).toBeNull();
   });
 

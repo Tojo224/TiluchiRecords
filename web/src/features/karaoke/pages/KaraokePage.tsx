@@ -165,6 +165,7 @@ export function KaraokePage() {
           <div className="p-5 sm:p-6">
             <FileUpload
               mode="dropzone"
+              anchor={TOUR_ANCHORS.karaokeDropzone}
               accept={VIDEO_FILE_ACCEPT}
               label="Arrastra tu video musical aqui (MP4, MKV o WebM) o haz clic para subirlo"
               busy={busy || processing}

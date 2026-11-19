@@ -1,12 +1,11 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { MISSIONS } from "@/tour/missions";
 import { EMPTY_TOUR_SNAPSHOT } from "@/tour/snapshot";
 import { DEFAULT_TOUR_PROGRESS } from "@/tour/storage";
 import { TourContext, type TourContextValue } from "@/tour/useTour";
 import { MissionChecklist } from "./MissionChecklist";
-import { TourNotices } from "./TourNotices";
 import { TourWelcome } from "./TourWelcome";
 
 function makeValue(
@@ -24,13 +23,11 @@ function makeValue(
     percent: 17,
     activeMissionId: null,
     showWelcome: false,
-    notices: [],
     startMission: vi.fn(),
     completeWelcome: vi.fn(),
     dismiss: vi.fn(),
     reopen: vi.fn(),
     restart: vi.fn(),
-    dismissNotice: vi.fn(),
     reportProject: vi.fn(),
     ...overrides,
   };
@@ -43,8 +40,6 @@ function withTour(value: TourContextValue, children: React.ReactNode) {
     </MemoryRouter>
   );
 }
-
-afterEach(() => vi.useRealTimers());
 
 describe("MissionChecklist", () => {
   it("toggles the panel with aria-expanded and shows progress", () => {
@@ -121,21 +116,5 @@ describe("TourWelcome", () => {
     fireEvent.keyDown(screen.getByRole("region"), { key: "Escape" });
     expect(value.completeWelcome).toHaveBeenCalledTimes(3);
     expect(value.startMission).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("TourNotices", () => {
-  it("keeps a polite live region and auto-hides notices", () => {
-    vi.useFakeTimers();
-    const value = makeValue({
-      notices: [{ id: 7, tone: "success", message: "Video subido." }],
-    });
-    render(withTour(value, <TourNotices />));
-    expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
-    expect(screen.getByText("Video subido.")).toBeInTheDocument();
-    act(() => {
-      vi.advanceTimersByTime(6000);
-    });
-    expect(value.dismissNotice).toHaveBeenCalledWith(7);
   });
 });

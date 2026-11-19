@@ -38,6 +38,7 @@ export const HELP_SECTIONS: readonly HelpSection[] = [
     tips: [
       "El orden creativo sugerido es Karaoke, luego Video desde musica y por ultimo Face swap.",
       "El boton Guia (abajo a la derecha) lista misiones paso a paso y marca las que ya completaste.",
+      "Cuando completas un paso aparece un aviso que dice que sigue. Su boton Mostrarme te lleva a hacerlo con instrucciones sobre el boton o los campos a usar.",
     ],
     missionId: "create-project",
   },

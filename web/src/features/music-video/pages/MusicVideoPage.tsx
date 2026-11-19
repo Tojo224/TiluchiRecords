@@ -338,6 +338,7 @@ export function MusicVideoPage() {
             {audios.length === 0 ? (
               <FileUpload
                 mode="dropzone"
+                anchor={TOUR_ANCHORS.musicDropzone}
                 accept={MUSIC_FILE_ACCEPT}
                 label="Arrastra tu pista musical aqui"
                 description="Formatos MP3, WAV o FLAC"

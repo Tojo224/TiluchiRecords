@@ -1,14 +1,23 @@
 /** Single source of truth for `data-tour` anchor names. */
 export const TOUR_ANCHORS = {
   newProject: "new-project",
-  projectFlows: "project-flows",
+  projectName: "project-name",
+  projectDescription: "project-description",
+  projectSubmit: "project-submit",
   karaokeUpload: "karaoke-upload",
+  karaokeDropzone: "karaoke-dropzone",
   karaokeCreate: "karaoke-create",
   karaokeSing: "karaoke-sing",
   musicUpload: "music-upload",
+  musicDropzone: "music-dropzone",
   musicPrompt: "music-prompt",
   musicPlan: "music-plan",
   musicProduce: "music-produce",
+  faceSwapImageDropzone: "face-swap-image-dropzone",
+  faceSwapImageButton: "face-swap-image-button",
+  faceSwapVideoDropzone: "face-swap-video-dropzone",
+  faceSwapVideoButton: "face-swap-video-button",
+  faceSwapPeople: "face-swap-people",
   faceSwapConsent: "face-swap-consent",
   faceSwapRun: "face-swap-run",
 } as const;
@@ -45,4 +54,19 @@ export function findTourElement(
   } catch {
     return null;
   }
+}
+
+/**
+ * Resolves the element a step points at: the first visible match of its
+ * primary anchor, else of its optional fallback anchor (for example the
+ * empty-state dropzone first, the header button once a file exists).
+ */
+export function findStepElement(step: {
+  target: TourAnchorName;
+  fallbackTarget?: TourAnchorName;
+}): Element | null {
+  return (
+    findTourElement(step.target) ??
+    (step.fallbackTarget ? findTourElement(step.fallbackTarget) : null)
+  );
 }

@@ -12,6 +12,7 @@ import { useAuth } from "../../../app/providers/AuthProvider";
 import { Button } from "../../../components/ui/Button";
 import { Notice } from "../../../components/ui/Notice";
 import type { Project } from "../../../shared/types/domain";
+import { TOUR_ANCHORS, tourAnchor } from "../../../tour/anchors";
 import {
   PROJECT_COVER_ACCEPT,
   uploadProjectCover,
@@ -228,6 +229,7 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
               <input
                 ref={nameInputRef}
                 name="name"
+                {...tourAnchor(TOUR_ANCHORS.projectName)}
                 maxLength={100}
                 required
                 autoComplete="off"
@@ -238,6 +240,7 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
               Descripcion
               <textarea
                 name="description"
+                {...tourAnchor(TOUR_ANCHORS.projectDescription)}
                 maxLength={500}
                 placeholder="Objetivo de la produccion"
               />
@@ -247,7 +250,11 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
             <Button variant="ghost" onClick={onClose} disabled={busy}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={busy}>
+            <Button
+              type="submit"
+              disabled={busy}
+              {...tourAnchor(TOUR_ANCHORS.projectSubmit)}
+            >
               <FolderPlus size={18} />
               {busy ? "Creando..." : "Crear proyecto"}
             </Button>

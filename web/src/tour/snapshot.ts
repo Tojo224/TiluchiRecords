@@ -10,7 +10,6 @@ export type TourSnapshot = {
   projectCount: number;
   videoCount: number;
   audioCount: number;
-  imageCount: number;
   karaokeReady: boolean;
   performanceCount: number;
   storyboardReady: boolean;
@@ -22,7 +21,6 @@ export const EMPTY_TOUR_SNAPSHOT: TourSnapshot = {
   projectCount: 0,
   videoCount: 0,
   audioCount: 0,
-  imageCount: 0,
   karaokeReady: false,
   performanceCount: 0,
   storyboardReady: false,
@@ -45,7 +43,6 @@ export function snapshotFromProject(project: Project): Partial<TourSnapshot> {
   return {
     videoCount: uploaded("ORIGINAL_VIDEO").length,
     audioCount: audios.length,
-    imageCount: uploaded("FACE_SWAP_SOURCE_IMAGE").length,
     karaokeReady: readyOfKind(assets, "KARAOKE_VIDEO").length > 0,
     performanceCount: readyOfKind(assets, "KARAOKE_PERFORMANCE_VIDEO").length,
     storyboardReady: audios.some(

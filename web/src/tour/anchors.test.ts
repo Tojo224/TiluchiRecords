@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   TOUR_ANCHORS,
+  findStepElement,
   findTourElement,
   tourAnchor,
   tourSelector,
@@ -47,6 +48,24 @@ describe("tour anchors", () => {
       <a id="a" data-tour="new-project" style="display:none"></a>
       <a id="b" data-tour="new-project"></a>`);
     expect(findTourElement(TOUR_ANCHORS.newProject)?.id).toBe("b");
+  });
+
+  it("findStepElement prefers the target, then the fallback", () => {
+    const step = {
+      target: TOUR_ANCHORS.karaokeDropzone,
+      fallbackTarget: TOUR_ANCHORS.karaokeUpload,
+    };
+    mount(`<div id="zone" data-tour="karaoke-dropzone"></div>
+      <button id="btn" data-tour="karaoke-upload"></button>`);
+    expect(findStepElement(step)?.id).toBe("zone");
+    mount(`<div id="zone" data-tour="karaoke-dropzone" data-fake-hidden="true"></div>
+      <button id="btn" data-tour="karaoke-upload"></button>`);
+    expect(findStepElement(step)?.id).toBe("btn");
+    mount("<p>nothing</p>");
+    expect(findStepElement(step)).toBeNull();
+    expect(
+      findStepElement({ target: TOUR_ANCHORS.karaokeDropzone }),
+    ).toBeNull();
   });
 
   it("returns null when missing or all duplicates are hidden", () => {

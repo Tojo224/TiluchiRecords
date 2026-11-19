@@ -5,6 +5,7 @@ import { FileUpload } from "@/features/media/components/FileUpload";
 import { formatBytes } from "@/shared/lib/format";
 import { VIDEO_FILE_ACCEPT } from "@/shared/media/asset-files";
 import type { MediaAsset } from "@/shared/types/domain";
+import { TOUR_ANCHORS } from "@/tour/anchors";
 import { formatVideoDuration } from "../lib/face-swap-state";
 import { SectionHeading } from "./SectionHeading";
 
@@ -39,6 +40,7 @@ export function TargetVideoPanel({
           <div className="mt-2">
             <FileUpload
               mode="dropzone"
+              anchor={TOUR_ANCHORS.faceSwapVideoDropzone}
               accept={VIDEO_FILE_ACCEPT}
               label="Arrastra el video objetivo aqui o haz clic para subir"
               busy={disabled}
@@ -99,6 +101,7 @@ export function TargetVideoPanel({
                   <FileUpload
                     accept={VIDEO_FILE_ACCEPT}
                     label="Cambiar video"
+                    anchor={TOUR_ANCHORS.faceSwapVideoButton}
                     busy={disabled}
                     onSelect={onUpload}
                   />
@@ -118,6 +121,7 @@ export function TargetVideoPanel({
                 <FileUpload
                   accept={VIDEO_FILE_ACCEPT}
                   label="Subir video"
+                  anchor={TOUR_ANCHORS.faceSwapVideoButton}
                   busy={disabled}
                   onSelect={onUpload}
                 />
