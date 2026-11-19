@@ -14,6 +14,28 @@ const normalize = (text: string): string =>
   text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ");
 
 /**
+ * True when the label is a whole string literal or JSX text node, not just a
+ * substring of something longer (e.g. "cantar" inside "comenzar a cantar").
+ */
+function isRenderedText(source: string, label: string): boolean {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const quote = "[>\"'`]";
+  const end = "(?:[<\"'`{]|$)";
+  return new RegExp(`${quote}\\s*${escaped}\\s*${end}`).test(source);
+}
+
+/**
+ * Labels that are only the start of a longer rendered text (a sentence or a
+ * heading with extra words). Everything else is a button or field label and
+ * must match as a whole string/text node.
+ */
+const PARTIAL_LABELS: ReadonlySet<UiLabelKey> = new Set<UiLabelKey>([
+  "suggestedStyles",
+  "consentText",
+  "missingPrefix",
+]);
+
+/**
  * Where each tour label is rendered. If this test fails, a UI label was
  * renamed: update UI_LABELS (and the tour copy that uses it) to match.
  */
@@ -49,7 +71,9 @@ describe("UI label drift guard", () => {
       const label = normalize(UI_LABELS[key]);
       for (const [file, source] of Object.entries(RENDERED_IN[key])) {
         expect(
-          normalize(source).includes(label),
+          PARTIAL_LABELS.has(key)
+            ? normalize(source).includes(label)
+            : isRenderedText(normalize(source), label),
           `UI label "${UI_LABELS[key]}" (${key}) not found in ${file}: update UI_LABELS and the tour copy`,
         ).toBe(true);
       }
