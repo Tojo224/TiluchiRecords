@@ -28,6 +28,9 @@ class Settings(BaseModel):
     facefusion_path: str = os.getenv("FACEFUSION_PATH", "/opt/facefusion")
     facefusion_execution_provider: str = os.getenv("FACEFUSION_EXECUTION_PROVIDER", "auto")
     facefusion_model: str = os.getenv("FACEFUSION_MODEL", "inswapper_128_fp16")
+    face_swap_pass_timeout_seconds: int = int(
+        os.getenv("FACE_SWAP_PASS_TIMEOUT_SECONDS", "1800")
+    )
 
     diffusion_model: str = os.getenv(
         "DIFFUSION_MODEL",

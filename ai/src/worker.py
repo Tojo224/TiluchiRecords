@@ -25,6 +25,7 @@ face_swap_provider = FaceFusionProvider(
     facefusion_path=settings.facefusion_path,
     execution_provider=settings.facefusion_execution_provider,
     model=settings.facefusion_model,
+    pass_timeout_seconds=settings.face_swap_pass_timeout_seconds,
 )
 face_identity_provider = FaceIdentityProvider(
     facefusion_path=settings.facefusion_path,
@@ -411,6 +412,7 @@ def process_face_swap(r: redis.Redis, job: dict):
                 "PROCESSING",
                 35 + round(50 * index / len(target_identities)),
             )
+            pass_progress = 35 + round(50 * index / len(target_identities))
             face_swap_provider.swap(
                 image_path,
                 current_video_path,
@@ -420,6 +422,9 @@ def process_face_swap(r: redis.Redis, job: dict):
                 ),
                 reference_face_position=max(
                     0, int(identity.get("referenceFacePosition", 0))
+                ),
+                progress_callback=lambda: publish_progress(
+                    r, job_id, "PROCESSING", pass_progress
                 ),
             )
             current_video_path = pass_output_path
@@ -884,7 +889,22 @@ def main():
         except Exception as e:
             print(f"[AI Worker] Error processing job from queue: {e}")
             failed_job_id = locals().get("job", {}).get("job_id")
-            if failed_job_id:
+            current_job = locals().get("job", {})
+            if (
+                failed_job_id
+                and current_job.get("type") == "FACE_SWAP"
+                and int(current_job.get("retry_count", 0)) < 1
+            ):
+                current_job["retry_count"] = int(current_job.get("retry_count", 0)) + 1
+                publish_progress(
+                    r,
+                    failed_job_id,
+                    "PROCESSING",
+                    35,
+                )
+                r.rpush(settings.jobs_queue_name, json.dumps(current_job))
+                print(f"[AI Worker] Requeued Face swap job {failed_job_id} for one retry.")
+            elif failed_job_id:
                 publish_progress(r, failed_job_id, "FAILED", 100, error=str(e))
             failed_raw_message = locals().get("raw_message")
             if failed_raw_message:
