@@ -7,6 +7,7 @@ import { MediaModule } from "./modules/media/media.module";
 import { JobsModule } from "./modules/jobs/jobs.module";
 import { UsersModule } from "./modules/users/users.module";
 import { ConsentsModule } from "./modules/consents/consents.module";
+import { AssistantModule } from "./modules/assistant/assistant.module";
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ConsentsModule } from "./modules/consents/consents.module";
     JobsModule,
     UsersModule,
     ConsentsModule,
+    AssistantModule,
   ],
   controllers: [],
   providers: [],

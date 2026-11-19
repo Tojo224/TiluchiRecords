@@ -15,6 +15,7 @@ import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "../components/navigation/Sidebar";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { HelpChatbot } from "../components/HelpChatbot";
 import { MissionChecklist } from "../components/tour/MissionChecklist";
 import { TourWelcome } from "../components/tour/TourWelcome";
 import { TourProvider } from "../tour/TourProvider";
@@ -100,6 +101,7 @@ export function AppLayout() {
         </div>
         <MissionChecklist />
       </div>
+      <HelpChatbot />
     </TourProvider>
   );
 }

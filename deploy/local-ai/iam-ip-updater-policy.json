@@ -1,0 +1,26 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadInstanceAndSecurityGroupRules",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeSecurityGroupRules"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ModifyOnlyTiluchiSecurityGroup",
+      "Effect": "Allow",
+      "Action": "ec2:ModifySecurityGroupRules",
+      "Resource": "arn:aws:ec2:us-east-1:490315706016:security-group/sg-05afa6121d3cb88d6"
+    },
+    {
+      "Sid": "ModifySecurityGroupRule",
+      "Effect": "Allow",
+      "Action": "ec2:ModifySecurityGroupRules",
+      "Resource": "arn:aws:ec2:us-east-1:490315706016:security-group-rule/sgr-0b366f6be62e384fa"
+    }
+  ]
+}
