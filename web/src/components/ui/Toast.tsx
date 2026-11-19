@@ -112,7 +112,11 @@ function ToastCard({
   onDismiss: () => void;
 }) {
   const [leaving, setLeaving] = useState(false);
-  const [paused, setPaused] = useState(false);
+  // Hover and keyboard focus are tracked separately: the timer stays paused
+  // while either one is active.
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const paused = hovered || focused;
   const remainingRef = useRef(toast.durationMs || DEFAULT_DURATION_MS);
   const onDismissRef = useRef(onDismiss);
   onDismissRef.current = onDismiss;
@@ -171,12 +175,12 @@ function ToastCard({
   return (
     <div
       role={toast.type === "error" ? "alert" : "status"}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-          setPaused(false);
+          setFocused(false);
         }
       }}
       className={`pointer-events-auto flex items-start gap-3 rounded-xl border p-4 shadow-xl backdrop-blur-md transition-all duration-200 ${

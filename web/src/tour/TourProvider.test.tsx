@@ -104,6 +104,26 @@ describe("TourProvider", () => {
     expect(run.mock.calls[0][0][0].target).toBe("karaoke-upload");
   });
 
+  it("dismisses its toasts when the provider unmounts", () => {
+    const withTour = (show: boolean) => (
+      <MemoryRouter initialEntries={["/dashboard"]}>
+        <ToastProvider>
+          {show && (
+            <TourProvider>
+              <Probe />
+            </TourProvider>
+          )}
+        </ToastProvider>
+      </MemoryRouter>
+    );
+    const { rerender } = render(withTour(true));
+    setProjects([project("p1")]);
+    rerender(withTour(true));
+    expect(toastCards()).toHaveLength(2);
+    rerender(withTour(false));
+    expect(toastCards()).toHaveLength(0);
+  });
+
   it("replaces earlier tour toasts instead of stacking them", () => {
     const { rerender } = render(tree("/projects/p1"));
     act(() => tour.reportProject({ projectId: "p1", snapshot: {} }));

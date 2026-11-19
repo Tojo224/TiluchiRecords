@@ -107,6 +107,13 @@ export function TourProvider({ children }: { children: ReactNode }) {
     tourToasts.current = [];
   }, [dismissToast]);
 
+  // Toasts live in the outer provider, so they must be dismissed when the tour
+  // provider unmounts (e.g. logout); otherwise "Mostrarme" would call into a
+  // dead provider.
+  const clearTourToastsRef = useRef(clearTourToasts);
+  clearTourToastsRef.current = clearTourToasts;
+  useEffect(() => () => clearTourToastsRef.current(), []);
+
   // Replaces the previous tour toasts so completions never pile up.
   const showTourToasts = useCallback(
     (items: Parameters<typeof toast.custom>[0][]) => {

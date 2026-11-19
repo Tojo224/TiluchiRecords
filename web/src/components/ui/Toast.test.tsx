@@ -117,6 +117,34 @@ describe("Toast", () => {
     expect(screen.queryByText("Foco")).toBeNull();
   });
 
+  it("stays paused while focus is inside even after the pointer leaves", () => {
+    mount();
+    act(() => {
+      api.toast.custom({
+        type: "info",
+        message: "Ambos",
+        action: { label: "Ir", onClick: vi.fn() },
+      });
+    });
+    const button = screen.getByRole("button", { name: "Ir" });
+    const card = screen.getByRole("status");
+    fireEvent.mouseEnter(card);
+    fireEvent.focus(button);
+    fireEvent.mouseLeave(card);
+    act(() => {
+      vi.advanceTimersByTime(10000);
+    });
+    expect(screen.getByText("Ambos")).toBeInTheDocument();
+    fireEvent.blur(button);
+    act(() => {
+      vi.advanceTimersByTime(4500);
+    });
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(screen.queryByText("Ambos")).toBeNull();
+  });
+
   it("clears its timers on unmount", () => {
     const view = mount();
     act(() => {
