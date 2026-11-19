@@ -28,7 +28,12 @@ describe("mission steps", () => {
   it("maps missions to the expected anchors", () => {
     const targets = (id: string) =>
       stepsForMission(id).map((step) => step.target);
-    expect(targets("create-project")).toEqual(["new-project"]);
+    expect(targets("create-project")).toEqual([
+      "new-project",
+      "project-name",
+      "project-description",
+      "project-submit",
+    ]);
     expect(targets("create-plan")).toEqual(["music-prompt", "music-plan"]);
     expect(targets("face-swap")).toEqual([
       "face-swap-consent",
@@ -84,6 +89,33 @@ describe("mission steps", () => {
     });
     expect(prompt.fields?.[0].note).toMatch(/500/);
     expect(prompt.fields?.[0].value).toContain(UI_LABELS.suggestedStyles);
+  });
+
+  it("guides the create-project modal with fields and the submit button", () => {
+    const [open, name, description, submit] = stepsForMission("create-project");
+    expect(open.late).toBeUndefined();
+    expect(open.action).toContain(UI_LABELS.newProject);
+    for (const step of [name, description, submit])
+      expect(step.late).toBe(true);
+    expect(name.fields?.[0]).toMatchObject({
+      label: UI_LABELS.projectName,
+      required: true,
+    });
+    expect(name.fields?.[0].note).toMatch(/100/);
+    expect(description.fields?.[0]).toMatchObject({
+      label: UI_LABELS.projectDescription,
+      required: false,
+    });
+    expect(description.fields?.[0].note).toMatch(/500/);
+    expect(submit.action).toContain(UI_LABELS.createProject);
+    expect(submit.fields).toBeUndefined();
+    for (const step of [name, description, submit]) {
+      const copy = [
+        step.action ?? "",
+        ...(step.fields ?? []).flatMap((f) => [f.label, f.value, f.note ?? ""]),
+      ].join("");
+      expect(copy).toMatch(/^[ -~]*$/);
+    }
   });
 
   it("explains the singing modal flow in text", () => {

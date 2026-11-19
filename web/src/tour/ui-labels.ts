@@ -10,6 +10,8 @@
 export const UI_LABELS = {
   newProject: "Nuevo proyecto",
   createProject: "Crear proyecto",
+  projectName: "Nombre",
+  projectDescription: "Descripcion",
   uploadVideo: "Subir video",
   createKaraoke: "Crear karaoke",
   sing: "Cantar",

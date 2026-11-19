@@ -2,6 +2,9 @@
 export const TOUR_ANCHORS = {
   newProject: "new-project",
   projectFlows: "project-flows",
+  projectName: "project-name",
+  projectDescription: "project-description",
+  projectSubmit: "project-submit",
   karaokeUpload: "karaoke-upload",
   karaokeCreate: "karaoke-create",
   karaokeSing: "karaoke-sing",

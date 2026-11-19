@@ -26,6 +26,14 @@ export type TourStep = {
   action?: string;
   /** Form controls involved in this step, with what to put in each. */
   fields?: readonly TourField[];
+  /**
+   * The element only exists AFTER the user acts on the previous step (for
+   * example a modal opened by that step's button). The runner waits for it
+   * instead of skipping the step.
+   */
+  late?: boolean;
+  /** Move keyboard focus to the highlighted control instead of the popover. */
+  focusTarget?: boolean;
 };
 
 const MISSING_HINT = `Si el boton esta desactivado, la linea ${q(L.missingPrefix)} justo debajo dice que falta.`;
@@ -46,6 +54,52 @@ export const MISSION_STEPS: Readonly<Record<string, readonly TourStep[]>> = {
       action: `Pulsa ${q(L.newProject)} para abrir el formulario.`,
       side: "bottom",
       interactive: true,
+    },
+    {
+      target: TOUR_ANCHORS.projectName,
+      title: `Escribe el ${q(L.projectName)}`,
+      description:
+        "Es el unico dato obligatorio. Elige un nombre que reconozcas despues en tu lista de proyectos.",
+      fields: [
+        {
+          label: L.projectName,
+          value: `Por ejemplo "Mi primer videoclip".`,
+          required: true,
+          note: "maximo 100 caracteres",
+        },
+      ],
+      side: "right",
+      interactive: true,
+      late: true,
+      focusTarget: true,
+    },
+    {
+      target: TOUR_ANCHORS.projectDescription,
+      title: `Cuenta de que trata (${q(L.projectDescription)})`,
+      description:
+        "Una frase con el objetivo de la produccion. Puedes dejarla vacia y completarla mas tarde.",
+      fields: [
+        {
+          label: L.projectDescription,
+          value: `Por ejemplo "Videoclip de mi cancion nueva".`,
+          required: false,
+          note: "maximo 500 caracteres",
+        },
+      ],
+      side: "right",
+      interactive: true,
+      late: true,
+      focusTarget: true,
+    },
+    {
+      target: TOUR_ANCHORS.projectSubmit,
+      title: `Pulsa ${q(L.createProject)}`,
+      description:
+        "Se crea el proyecto y se abre enseguida para que subas tus videos y tu musica. Si falta el nombre, el formulario te lo avisara.",
+      action: `Pulsa ${q(L.createProject)}.`,
+      side: "top",
+      interactive: true,
+      late: true,
     },
   ],
   "upload-video": [

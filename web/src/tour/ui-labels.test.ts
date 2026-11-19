@@ -42,6 +42,8 @@ const PARTIAL_LABELS: ReadonlySet<UiLabelKey> = new Set<UiLabelKey>([
 const RENDERED_IN: Record<UiLabelKey, Record<string, string>> = {
   newProject: { "ProjectsPage.tsx": projectsPage },
   createProject: { "NewProjectModal.tsx": newProjectModal },
+  projectName: { "NewProjectModal.tsx": newProjectModal },
+  projectDescription: { "NewProjectModal.tsx": newProjectModal },
   uploadVideo: { "KaraokePage.tsx": karaokePage },
   createKaraoke: { "KaraokePage.tsx": karaokePage },
   sing: { "KaraokePage.tsx": karaokePage },

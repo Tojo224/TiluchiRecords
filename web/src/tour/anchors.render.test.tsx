@@ -1,10 +1,19 @@
 import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { MemoryRouter } from "react-router-dom";
+import { describe, expect, it, vi } from "vitest";
 import { Button } from "@/components/ui/Button";
 import { FileUpload } from "@/features/media/components/FileUpload";
 import { MediaPlayer } from "@/features/media/components/MediaPlayer";
+import { NewProjectModal } from "@/features/projects/components/NewProjectModal";
 import type { MediaAsset } from "@/shared/types/domain";
 import { TOUR_ANCHORS, tourAnchor, tourSelector } from "./anchors";
+
+vi.mock("@/app/providers/AuthProvider", () => ({
+  useAuth: () => ({ api: vi.fn() }),
+}));
+vi.mock("../app/providers/AuthProvider", () => ({
+  useAuth: () => ({ api: vi.fn() }),
+}));
 
 const asset: MediaAsset = {
   id: "a1",
@@ -56,5 +65,25 @@ describe("data-tour reaches the DOM", () => {
       tourSelector(TOUR_ANCHORS.karaokeSing),
     );
     expect(match).toHaveTextContent("Cantar");
+  });
+
+  it("through the new project modal fields and submit button", () => {
+    render(
+      <MemoryRouter>
+        <NewProjectModal onClose={() => undefined} />
+      </MemoryRouter>,
+    );
+    const name = document.querySelector(tourSelector(TOUR_ANCHORS.projectName));
+    expect(name).toBeInstanceOf(HTMLInputElement);
+    expect(name).toHaveAttribute("name", "name");
+    const description = document.querySelector(
+      tourSelector(TOUR_ANCHORS.projectDescription),
+    );
+    expect(description).toBeInstanceOf(HTMLTextAreaElement);
+    const submit = document.querySelector(
+      tourSelector(TOUR_ANCHORS.projectSubmit),
+    );
+    expect(submit).toHaveAttribute("type", "submit");
+    expect(submit).toHaveTextContent("Crear proyecto");
   });
 });
