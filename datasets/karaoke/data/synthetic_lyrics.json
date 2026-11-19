@@ -1,0 +1,16 @@
+{
+  "synthetic": true,
+  "language": "es",
+  "segments": [
+    {
+      "start": 0.0,
+      "end": 1.8,
+      "text": "Luz de muestra en el cielo"
+    },
+    {
+      "start": 1.8,
+      "end": 3.8,
+      "text": "suena el ritmo sintético"
+    }
+  ]
+}

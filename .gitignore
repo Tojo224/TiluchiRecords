@@ -48,6 +48,10 @@ backend/prisma/*.db-journal
 /media-storage/
 /data/
 /.models/
+/datasets/**/media/
+/datasets/**/private/
+/datasets/**/consents/
+/deploy/local-ai/instance-ip.txt
 
 # Local project documentation
 /docs/

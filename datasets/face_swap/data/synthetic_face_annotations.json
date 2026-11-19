@@ -1,0 +1,31 @@
+{
+  "synthetic": true,
+  "frame_rate": 12,
+  "target_person_ids": [
+    "synthetic-person-a",
+    "synthetic-person-b"
+  ],
+  "samples": [
+    {
+      "time": 0.0,
+      "person_id": "synthetic-person-a",
+      "bbox_xyxy": [
+        63,
+        28,
+        169,
+        177
+      ]
+    },
+    {
+      "time": 0.0,
+      "person_id": "synthetic-person-b",
+      "bbox_xyxy": [
+        219,
+        28,
+        325,
+        177
+      ]
+    }
+  ],
+  "warning": "Illustrated geometric avatars; not face-detection ground truth."
+}

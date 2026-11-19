@@ -14,6 +14,7 @@ import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "../components/navigation/Sidebar";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { HelpChatbot } from "../components/HelpChatbot";
 
 const routeMeta: Array<{ match: RegExp; title: string; icon: LucideIcon }> = [
   { match: /\/karaoke$/, title: "Karaoke", icon: Mic2 },
@@ -91,6 +92,7 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <HelpChatbot />
     </div>
   );
 }

@@ -1,0 +1,26 @@
+{
+  "synthetic": true,
+  "language": "es",
+  "creative_direction": "Paleta geométrica cambia por secciones musicales con ritmo sintético.",
+  "scenes": [
+    {
+      "start": 0.0,
+      "end": 2.0,
+      "description": "Amanecer abstracto en azul y turquesa.",
+      "music_section": "intro"
+    },
+    {
+      "start": 2.0,
+      "end": 4.0,
+      "description": "Formas cálidas y movimiento gráfico.",
+      "music_section": "middle"
+    },
+    {
+      "start": 4.0,
+      "end": 6.0,
+      "description": "Cierre abstracto verde con ritmo suave.",
+      "music_section": "outro"
+    }
+  ],
+  "warning": "Synthetic scene annotation, not model output."
+}
