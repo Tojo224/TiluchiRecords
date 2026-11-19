@@ -3,6 +3,7 @@ import { Panel } from "@/components/ui/Panel";
 import { AssetSelect } from "@/features/media/components/AssetSelect";
 import { FileUpload } from "@/features/media/components/FileUpload";
 import { IMAGE_FILE_ACCEPT } from "@/shared/media/asset-files";
+import { TOUR_ANCHORS } from "@/tour/anchors";
 import type { MediaAsset } from "@/shared/types/domain";
 import { SectionHeading } from "./SectionHeading";
 
@@ -37,6 +38,7 @@ export function SourceImagePanel({
           <div className="mt-2">
             <FileUpload
               mode="dropzone"
+              anchor={TOUR_ANCHORS.faceSwapImageDropzone}
               accept={IMAGE_FILE_ACCEPT}
               label="Arrastra una foto del rostro aqui o haz clic para subir"
               busy={disabled}
@@ -83,6 +85,7 @@ export function SourceImagePanel({
               <FileUpload
                 accept={IMAGE_FILE_ACCEPT}
                 label={image ? "Cambiar imagen" : "Subir imagen"}
+                anchor={TOUR_ANCHORS.faceSwapImageButton}
                 busy={disabled}
                 onSelect={onUpload}
               />

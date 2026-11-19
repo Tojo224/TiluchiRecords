@@ -6,6 +6,9 @@ import singingModal from "../features/karaoke/components/KaraokeSingingModal.tsx
 import musicPage from "../features/music-video/pages/MusicVideoPage.tsx?raw";
 import phaseTwoPanel from "../features/music-video/components/PhaseTwoPanel.tsx?raw";
 import consentPanel from "../features/face-swap/components/ConsentPanel.tsx?raw";
+import sourceImagePanel from "../features/face-swap/components/SourceImagePanel.tsx?raw";
+import targetVideoPanel from "../features/face-swap/components/TargetVideoPanel.tsx?raw";
+import faceSwapPage from "../features/face-swap/pages/FaceSwapPage.tsx?raw";
 import disabledReason from "../components/ui/DisabledReason.tsx?raw";
 import { UI_LABELS, type UiLabelKey } from "./ui-labels";
 
@@ -31,6 +34,7 @@ function isRenderedText(source: string, label: string): boolean {
  */
 const PARTIAL_LABELS: ReadonlySet<UiLabelKey> = new Set<UiLabelKey>([
   "suggestedStyles",
+  "startSwapMany",
   "consentText",
   "missingPrefix",
 ]);
@@ -44,7 +48,10 @@ const RENDERED_IN: Record<UiLabelKey, Record<string, string>> = {
   createProject: { "NewProjectModal.tsx": newProjectModal },
   projectName: { "NewProjectModal.tsx": newProjectModal },
   projectDescription: { "NewProjectModal.tsx": newProjectModal },
-  uploadVideo: { "KaraokePage.tsx": karaokePage },
+  uploadVideo: {
+    "KaraokePage.tsx": karaokePage,
+    "TargetVideoPanel.tsx": targetVideoPanel,
+  },
   createKaraoke: { "KaraokePage.tsx": karaokePage },
   sing: { "KaraokePage.tsx": karaokePage },
   startSinging: { "KaraokeSingingModal.tsx": singingModal },
@@ -53,6 +60,11 @@ const RENDERED_IN: Record<UiLabelKey, Record<string, string>> = {
   analyzePlan: { "MusicVideoPage.tsx": musicPage },
   produceVideoclip: { "PhaseTwoPanel.tsx": phaseTwoPanel },
   startSwap: { "ConsentPanel.tsx": consentPanel },
+  startSwapMany: { "ConsentPanel.tsx": consentPanel },
+  uploadImage: { "SourceImagePanel.tsx": sourceImagePanel },
+  changeImage: { "SourceImagePanel.tsx": sourceImagePanel },
+  changeVideo: { "TargetVideoPanel.tsx": targetVideoPanel },
+  peopleToReplace: { "FaceSwapPage.tsx": faceSwapPage },
   visualDirection: { "MusicVideoPage.tsx": musicPage },
   suggestedStyles: { "MusicVideoPage.tsx": musicPage },
   consentPanel: { "ConsentPanel.tsx": consentPanel },

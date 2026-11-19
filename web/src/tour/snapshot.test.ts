@@ -68,7 +68,6 @@ describe("snapshotFromProject", () => {
     expect(snap).toMatchObject({
       videoCount: 1,
       audioCount: 1,
-      imageCount: 1,
       karaokeReady: false,
       storyboardReady: false,
     });

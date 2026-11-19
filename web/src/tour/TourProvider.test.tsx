@@ -101,7 +101,7 @@ describe("TourProvider", () => {
     expect(next).toHaveTextContent("Siguiente paso: Sube un video");
     expect(next).toHaveTextContent(/Subir video/);
     fireEvent.click(within(next).getByRole("button", { name: "Mostrarme" }));
-    expect(run.mock.calls[0][0][0].target).toBe("karaoke-upload");
+    expect(run.mock.calls[0][0][0].target).toBe("karaoke-dropzone");
   });
 
   it("dismisses its toasts when the provider unmounts", () => {
@@ -206,7 +206,7 @@ describe("TourProvider", () => {
       "/projects/p1/karaoke",
     );
     expect(run).toHaveBeenCalledTimes(1);
-    expect(run.mock.calls[0][0][0].target).toBe("karaoke-upload");
+    expect(run.mock.calls[0][0][0].target).toBe("karaoke-dropzone");
     expect(tour.activeMissionId).toBe("upload-video");
   });
 

@@ -5,7 +5,7 @@ import {
   type PopoverDOM,
 } from "driver.js";
 import "driver.js/dist/driver.css";
-import { findTourElement } from "./anchors";
+import { findStepElement } from "./anchors";
 import type { TourStep } from "./steps";
 
 export type RunMicroTourOptions = {
@@ -93,7 +93,7 @@ function toDriveSteps(
   onRender: (popover: PopoverDOM, step: TourStep) => void,
 ): DriveStep[] {
   return steps.flatMap((step): DriveStep[] => {
-    const element = findTourElement(step.target);
+    const element = findStepElement(step);
     // Later steps whose element is not on screen yet are skipped silently.
     if (!element) return [];
     return [
@@ -238,7 +238,7 @@ export function runMicroTour(
       const next = segments[index + 1];
       waitThen(
         Math.ceil(LATE_WAIT_MS / POLL_MS),
-        () => (findTourElement(next[0].target) ? index + 1 : -1),
+        () => (findStepElement(next[0]) ? index + 1 : -1),
         () => finish(),
       );
     };
@@ -247,10 +247,10 @@ export function runMicroTour(
   }
 
   /** Ends the tour quietly when the area of a late segment goes away. */
-  function watchScope(sentinel: TourStep["target"]) {
+  function watchScope(sentinel: TourStep) {
     const tick = () => {
       if (disposed || finished) return;
-      if (!findTourElement(sentinel)) {
+      if (!findStepElement(sentinel)) {
         closeTour();
         return;
       }
@@ -296,7 +296,7 @@ export function runMicroTour(
       instance = current;
       document.addEventListener("keydown", onKeyDown, true);
       current.drive();
-      if (index > 0) watchScope(segment[0].target);
+      if (index > 0) watchScope(segment[0]);
       const last = driveSteps[driveSteps.length - 1].element;
       if (index < segments.length - 1 && last instanceof Element) {
         armHandoff(index, last);
@@ -315,7 +315,7 @@ export function runMicroTour(
       // The latest area already on screen wins (e.g. the modal is open).
       () => {
         for (let i = segments.length - 1; i >= 0; i--) {
-          if (findTourElement(segments[i][0].target)) return i;
+          if (findStepElement(segments[i][0])) return i;
         }
         return -1;
       },

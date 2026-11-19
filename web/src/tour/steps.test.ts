@@ -36,9 +36,14 @@ describe("mission steps", () => {
     ]);
     expect(targets("create-plan")).toEqual(["music-prompt", "music-plan"]);
     expect(targets("face-swap")).toEqual([
+      "face-swap-image-dropzone",
+      "face-swap-video-dropzone",
+      "face-swap-people",
       "face-swap-consent",
       "face-swap-run",
     ]);
+    expect(targets("upload-video")).toEqual(["karaoke-dropzone"]);
+    expect(targets("upload-music")).toEqual(["music-dropzone"]);
   });
 
   it("uses ASCII-only copy and keeps every step interactive", () => {
@@ -144,6 +149,37 @@ describe("mission steps", () => {
         expect(step.description).toContain(UI_LABELS.missingPrefix);
       }
     }
+  });
+
+  it("tries the dropzone first and falls back to a registered button", () => {
+    const withFallback = allSteps.filter((step) => step.fallbackTarget);
+    expect(withFallback.map((step) => step.fallbackTarget)).toEqual([
+      "karaoke-upload",
+      "music-upload",
+      "face-swap-image-button",
+      "face-swap-video-button",
+    ]);
+    for (const step of withFallback) {
+      expect(anchorNames).toContain(step.fallbackTarget);
+      expect(step.fallbackTarget).not.toBe(step.target);
+      expect(step.target).toMatch(/dropzone$/);
+      expect(step.action).toMatch(/^Arrastra .* o pulsa /);
+    }
+  });
+
+  it("guides the face swap prerequisites in page order", () => {
+    const [image, video, people, consent, run] = stepsForMission("face-swap");
+    expect(image.action).toContain(UI_LABELS.uploadImage);
+    expect(image.action).toContain(UI_LABELS.changeImage);
+    expect(video.action).toContain(UI_LABELS.uploadVideo);
+    expect(video.action).toContain(UI_LABELS.changeVideo);
+    expect(people.title).toContain(UI_LABELS.peopleToReplace);
+    expect(people.description).toMatch(/termina la deteccion/);
+    expect(people.description).toMatch(/una sola persona, se selecciona sola/);
+    expect(people.late).toBeUndefined();
+    expect(consent.fields?.[0].required).toBe(true);
+    expect(run.action).toContain(UI_LABELS.startSwap);
+    expect(run.description).toContain(UI_LABELS.startSwapMany);
   });
 
   it("returns an empty list for unknown missions", () => {

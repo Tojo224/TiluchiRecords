@@ -132,6 +132,24 @@ describe("runMicroTour", () => {
     expect(onUnavailable).not.toHaveBeenCalled();
   });
 
+  it("highlights the dropzone when present, else the fallback button", () => {
+    const zoneStep: TourStep = {
+      ...step,
+      target: TOUR_ANCHORS.karaokeDropzone,
+      fallbackTarget: TOUR_ANCHORS.karaokeUpload,
+    };
+    const button = addAnchorFor(TOUR_ANCHORS.karaokeUpload);
+    const zone = addAnchorFor(TOUR_ANCHORS.karaokeDropzone);
+    runMicroTour([zoneStep]);
+    expect(firstConfig()?.steps?.[0]?.element).toBe(zone);
+    zone.remove();
+    vi.mocked(driver).mockClear();
+    runMicroTour([zoneStep]);
+    expect(vi.mocked(driver).mock.calls[0][0]?.steps?.[0]?.element).toBe(
+      button,
+    );
+  });
+
   it("stays silent for later steps that are missing", () => {
     addAnchor();
     const onUnavailable = vi.fn();

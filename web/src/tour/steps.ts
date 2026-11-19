@@ -17,6 +17,8 @@ export type TourField = {
 /** One highlighted element inside a micro-tour. Pure data. */
 export type TourStep = {
   target: TourAnchorName;
+  /** Tried when `target` has no visible element (e.g. dropzone gone). */
+  fallbackTarget?: TourAnchorName;
   title: string;
   description: string;
   side: TourStepSide;
@@ -104,11 +106,12 @@ export const MISSION_STEPS: Readonly<Record<string, readonly TourStep[]>> = {
   ],
   "upload-video": [
     {
-      target: TOUR_ANCHORS.karaokeUpload,
-      title: `Pulsa ${q(L.uploadVideo)}`,
+      target: TOUR_ANCHORS.karaokeDropzone,
+      fallbackTarget: TOUR_ANCHORS.karaokeUpload,
+      title: `Sube tu video con ${q(L.uploadVideo)}`,
       description:
         "Para el karaoke necesitas un video con musica y con la letra cantada. De ahi sacamos la voz y la pista.",
-      action: `Pulsa ${q(L.uploadVideo)} y elige un video (MP4, MPEG, MOV, AVI o WebM).`,
+      action: `Arrastra el archivo al recuadro o pulsa ${q(L.uploadVideo)} y elige un video (MP4, MPEG, MOV, AVI o WebM).`,
       side: "bottom",
       interactive: true,
     },
@@ -135,11 +138,12 @@ export const MISSION_STEPS: Readonly<Record<string, readonly TourStep[]>> = {
   ],
   "upload-music": [
     {
-      target: TOUR_ANCHORS.musicUpload,
-      title: `Pulsa ${q(L.uploadMusic)}`,
+      target: TOUR_ANCHORS.musicDropzone,
+      fallbackTarget: TOUR_ANCHORS.musicUpload,
+      title: `Sube tu pieza con ${q(L.uploadMusic)}`,
       description:
         "La pieza musical es la base del videoclip: con ella armamos las escenas.",
-      action: `Pulsa ${q(L.uploadMusic)} y elige tu pieza (audio como MP3 o M4A, o MP4/MPEG).`,
+      action: `Arrastra el archivo al recuadro o pulsa ${q(L.uploadMusic)} y elige tu pieza (audio como MP3 o M4A, o MP4/MPEG).`,
       side: "bottom",
       interactive: true,
     },
@@ -183,6 +187,38 @@ export const MISSION_STEPS: Readonly<Record<string, readonly TourStep[]>> = {
   ],
   "face-swap": [
     {
+      target: TOUR_ANCHORS.faceSwapImageDropzone,
+      fallbackTarget: TOUR_ANCHORS.faceSwapImageButton,
+      title: "Sube la foto del rostro",
+      description:
+        "Es el rostro que se pondra en el video. Usa una foto clara y de frente.",
+      action: `Arrastra una foto (PNG, JPG o WebP) al recuadro o pulsa ${q(L.uploadImage)}. Si ya hay una imagen en el proyecto, elige otra en la lista o pulsa ${q(L.changeImage)}.`,
+      side: "right",
+      interactive: true,
+    },
+    {
+      target: TOUR_ANCHORS.faceSwapVideoDropzone,
+      fallbackTarget: TOUR_ANCHORS.faceSwapVideoButton,
+      title: "Sube el video donde se reemplazaran los rostros",
+      description:
+        "Al elegir el video empieza solo la deteccion de personas; puede tardar un poco.",
+      action: `Arrastra el video (MP4, MPEG, MOV, AVI o WebM) al recuadro o pulsa ${q(L.uploadVideo)}. Si ya hay uno, elige otro en la lista o pulsa ${q(L.changeVideo)}.`,
+      side: "left",
+      interactive: true,
+    },
+    {
+      // Only rendered once automatic detection has finished: when it is
+      // missing at start the runner skips this step silently.
+      target: TOUR_ANCHORS.faceSwapPeople,
+      title: `Elige a quien reemplazar (${q(L.peopleToReplace)})`,
+      description:
+        "Esta lista aparece cuando termina la deteccion de personas del video; si todavia no se ve, espera a que termine. Si el video tiene una sola persona, se selecciona sola.",
+      action:
+        "Pulsa la tarjeta de al menos una persona para seleccionarla (puedes elegir varias).",
+      side: "top",
+      interactive: true,
+    },
+    {
       target: TOUR_ANCHORS.faceSwapConsent,
       title: `Marca la casilla de ${q(L.consentPanel)}`,
       description:
@@ -201,8 +237,8 @@ export const MISSION_STEPS: Readonly<Record<string, readonly TourStep[]>> = {
     {
       target: TOUR_ANCHORS.faceSwapRun,
       title: `Pulsa ${q(L.startSwap)}`,
-      description: `Cuando tengas el video, la imagen y el permiso, este boton se activa y empieza el proceso. ${MISSING_HINT}`,
-      action: `Pulsa ${q(L.startSwap)}.`,
+      description: `Cuando tengas la imagen, el video, al menos una persona elegida y la confirmacion, este boton se activa y empieza el proceso. Si elegiste varias personas el boton dice ${q(`${L.startSwapMany} N personas`)}. ${MISSING_HINT}`,
+      action: `Pulsa ${q(L.startSwap)} (o ${q(`${L.startSwapMany} N personas`)}).`,
       side: "top",
       interactive: true,
     },
